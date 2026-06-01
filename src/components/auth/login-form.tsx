@@ -7,8 +7,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createClient } from "@/lib/supabase/client";
 import { getProfileRole } from "@/lib/supabase/profile";
-import type { Database } from "@/types/database";
-import type { SupabaseClient } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -76,10 +74,7 @@ export function LoginForm({ mode, redirectTo }: LoginFormProps) {
         } = await supabase.auth.getUser();
         if (!user) throw new Error("Sign in failed");
 
-        const role = await getProfileRole(
-          supabase as SupabaseClient<Database>,
-          user.id
-        );
+        const role = await getProfileRole(supabase, user.id);
         if (mode === "admin" && role !== "admin") {
           await supabase.auth.signOut();
           throw new Error("This account is not an admin.");
