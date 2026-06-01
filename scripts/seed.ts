@@ -9,21 +9,38 @@ import { createClient } from "@supabase/supabase-js";
 config({ path: resolve(process.cwd(), ".env.local") });
 config({ path: resolve(process.cwd(), ".env") });
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
 
-if (!url || !serviceKey) {
+const isPlaceholder =
+  !url ||
+  !serviceKey ||
+  url.includes("your-project.supabase.co") ||
+  url.includes("xxxxxxxx") ||
+  serviceKey.includes("your-service-role") ||
+  serviceKey.includes("your-anon") ||
+  anonKey?.includes("your-anon");
+
+if (isPlaceholder) {
   console.error(`
-Missing Supabase credentials.
+❌  .env.local still has EXAMPLE values — seed cannot run.
 
-1. Copy:  cp .env.example .env.local
-2. Edit .env.local and set:
-   - NEXT_PUBLIC_SUPABASE_URL
-   - NEXT_PUBLIC_SUPABASE_ANON_KEY
-   - SUPABASE_SERVICE_ROLE_KEY
-   (from Supabase → Project Settings → API)
+Your error "ENOTFOUND your-project.supabase.co" means the URL was not replaced.
 
-3. Run again:  npm run db:seed
+FIX:
+  1. Open Supabase → Project Settings → API
+  2. Copy Project URL (looks like https://abcdefgh.supabase.co)
+  3. Copy anon key and service_role key (Reveal)
+  4. Edit THIS file:  ${resolve(process.cwd(), ".env.local")}
+
+     NEXT_PUBLIC_SUPABASE_URL=https://YOUR-REAL-ID.supabase.co
+     NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGci...   (long string)
+     SUPABASE_SERVICE_ROLE_KEY=eyJhbGci...       (long string)
+
+  5. Save, then run:  npm run db:seed
+
+Do NOT use values from .env.example — those are fake.
 `);
   process.exit(1);
 }
