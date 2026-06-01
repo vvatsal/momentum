@@ -1,5 +1,6 @@
 import { requireProfile } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
+import type { TestListItem } from "@/types/database";
 import { AppHeader } from "@/components/layout/app-header";
 import {
   Card,
@@ -13,7 +14,7 @@ export default async function AdminDashboardPage() {
   const profile = await requireProfile("admin");
   const supabase = await createClient();
 
-  const [{ count: studentCount }, { data: tests }] = await Promise.all([
+  const [{ count: studentCount }, { data: testsData }] = await Promise.all([
     supabase
       .from("profiles")
       .select("*", { count: "exact", head: true })
@@ -23,6 +24,8 @@ export default async function AdminDashboardPage() {
       .select("id, title, status, created_at")
       .order("created_at", { ascending: false }),
   ]);
+
+  const tests = (testsData ?? []) as TestListItem[];
 
   return (
     <div className="min-h-dvh">

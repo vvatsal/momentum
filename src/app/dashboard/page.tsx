@@ -1,5 +1,6 @@
 import { requireProfile } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
+import type { PublishedTestListItem } from "@/types/database";
 import { AppHeader } from "@/components/layout/app-header";
 import {
   Card,
@@ -13,11 +14,13 @@ export default async function StudentDashboardPage() {
   const profile = await requireProfile("student");
   const supabase = await createClient();
 
-  const { data: tests } = await supabase
+  const { data: testsData } = await supabase
     .from("tests")
     .select("id, title, description, starts_at, ends_at, duration_minutes")
     .eq("status", "published")
     .order("published_at", { ascending: false });
+
+  const tests = (testsData ?? []) as PublishedTestListItem[];
 
   return (
     <div className="min-h-dvh">
