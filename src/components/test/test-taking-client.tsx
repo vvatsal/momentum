@@ -4,9 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   finalSubmit,
-  recordQuestionVisit,
-  saveAnswer,
-  saveTiming,
+  flushQuestionTiming,
+  syncQuestionNavigation,
   type AttemptBundle,
   type AttemptResponseState,
 } from "@/app/actions/attempt";
@@ -34,6 +33,12 @@ type Props = {
   initial: AttemptBundle;
 };
 
+type LeaveAnswer = {
+  status: ResponseStatus;
+  selectedOption?: string | null;
+  numericAnswer?: number | null;
+};
+
 export function TestTakingClient({ initial }: Props) {
   const router = useRouter();
   const [questions] = useState(initial.questions);
@@ -53,7 +58,7 @@ export function TestTakingClient({ initial }: Props) {
 
   const attemptId = initial.attempt.id;
   const testId = initial.test.id;
-  const visitRecorded = useRef<Set<string>>(new Set());
+  const syncingRef = useRef(false);
 
   const currentIndex = questions.findIndex((q) => q.id === currentId);
   const currentQuestion = questions[currentIndex];
@@ -107,122 +112,158 @@ export function TestTakingClient({ initial }: Props) {
     loadLocalAnswer(currentId);
   }, [currentId, loadLocalAnswer]);
 
-  const flushTiming = useCallback(
-    async (questionId: string) => {
-      const delta = consumeDelta();
-      if (delta <= 0) return;
+  const applyLocalResponse = useCallback(
+    (
+      questionId: string,
+      patch: Partial<AttemptResponseState> & { status?: ResponseStatus }
+    ) => {
       setResponses((prev) =>
         prev.map((r) =>
-          r.question_id === questionId
-            ? { ...r, time_spent_seconds: r.time_spent_seconds + delta }
-            : r
+          r.question_id === questionId ? { ...r, ...patch } : r
         )
       );
-      await saveTiming({ attemptId, questionId, deltaSeconds: delta });
     },
-    [attemptId, consumeDelta]
+    []
   );
 
-  const persistAnswer = useCallback(
-    async (
-      questionId: string,
-      status: ResponseStatus,
-      selectedOption?: string | null,
-      numericAnswer?: number | null
-    ) => {
-      setSaveState("saving");
-      const res = await saveAnswer({
-        attemptId,
-        questionId,
-        status,
-        selectedOption: selectedOption ?? null,
-        numericAnswer: numericAnswer ?? null,
-      });
-      if (!res.ok) {
-        setError(res.error);
-        setSaveState("idle");
-        return false;
+  const buildLeaveAnswer = useCallback((): LeaveAnswer | undefined => {
+    const q = questions.find((x) => x.id === currentId);
+    if (!q) return undefined;
+
+    if (q.type === "mcq" && mcqSelection) {
+      return { status: "answered", selectedOption: mcqSelection };
+    }
+    if (q.type === "numeric" && numericInput.trim()) {
+      if (!isValidNumericInput(numericInput)) {
+        setNumericError("Enter a valid number (e.g. 3.14)");
+        return undefined;
       }
-      setResponses((prev) =>
-        prev.map((r) =>
-          r.question_id === questionId
-            ? {
-                ...r,
-                status,
-                selected_option: selectedOption ?? null,
-                numeric_answer: numericAnswer ?? null,
-              }
-            : r
-        )
-      );
-      setSaveState("saved");
-      window.setTimeout(() => setSaveState("idle"), 1500);
-      return true;
+      return {
+        status: "answered",
+        numericAnswer: parseNumericInput(numericInput),
+      };
+    }
+    return undefined;
+  }, [currentId, mcqSelection, numericInput, questions]);
+
+  const runSync = useCallback(
+    async (
+      leaveId: string,
+      enterId: string,
+      delta: number,
+      leaveAnswer?: LeaveAnswer
+    ) => {
+      if (syncingRef.current) return { ok: true as const };
+      syncingRef.current = true;
+      setSaveState("saving");
+
+      const res = await syncQuestionNavigation({
+        attemptId,
+        leaveQuestionId: leaveId,
+        enterQuestionId: enterId,
+        leaveTimeDelta: delta,
+        leaveAnswer,
+      });
+
+      syncingRef.current = false;
+      if (res.ok) {
+        setSaveState("saved");
+        window.setTimeout(() => setSaveState("idle"), 800);
+      } else {
+        setSaveState("idle");
+        setError(res.error);
+      }
+      return res;
     },
     [attemptId]
   );
 
   const navigateTo = useCallback(
-    async (nextId: string) => {
-      if (nextId === currentId) return;
-      setError(null);
-      await flushTiming(currentId);
+    async (nextId: string, forceAnswer?: LeaveAnswer) => {
+      if (nextId === currentId) return false;
 
-      const currentQ = questions.find((q) => q.id === currentId);
-      if (currentQ?.type === "mcq" && mcqSelection) {
-        await persistAnswer(currentId, "answered", mcqSelection, null);
-      } else if (currentQ?.type === "numeric" && numericInput.trim()) {
-        if (!isValidNumericInput(numericInput)) {
-          setNumericError("Enter a valid number (e.g. 3.14)");
-          return;
+      const leaveAnswer = forceAnswer ?? buildLeaveAnswer();
+      if (!forceAnswer && leaveAnswer === undefined) {
+        const q = questions.find((x) => x.id === currentId);
+        if (
+          q?.type === "numeric" &&
+          numericInput.trim() &&
+          !isValidNumericInput(numericInput)
+        ) {
+          return false;
         }
-        await persistAnswer(
-          currentId,
-          "answered",
-          null,
-          parseNumericInput(numericInput)
-        );
       }
 
-      if (!visitRecorded.current.has(nextId)) {
-        await recordQuestionVisit({ attemptId, questionId: nextId });
-        visitRecorded.current.add(nextId);
+      const delta = consumeDelta();
+      const prevId = currentId;
+
+      if (leaveAnswer) {
+        applyLocalResponse(prevId, {
+          status: leaveAnswer.status,
+          selected_option: leaveAnswer.selectedOption ?? null,
+          numeric_answer: leaveAnswer.numericAnswer ?? null,
+        });
+      }
+      if (delta > 0) {
+        applyLocalResponse(prevId, {
+          time_spent_seconds:
+            (responses.find((r) => r.question_id === prevId)?.time_spent_seconds ??
+              0) + delta,
+        });
       }
 
       setCurrentId(nextId);
+      setError(null);
+
+      void runSync(prevId, nextId, delta, leaveAnswer);
+      return true;
     },
     [
-      attemptId,
+      applyLocalResponse,
+      buildLeaveAnswer,
+      consumeDelta,
       currentId,
-      flushTiming,
-      mcqSelection,
       numericInput,
-      persistAnswer,
       questions,
+      responses,
+      runSync,
     ]
   );
 
   useEffect(() => {
-    const record = async () => {
-      if (!visitRecorded.current.has(currentId)) {
-        await recordQuestionVisit({ attemptId, questionId: currentId });
-        visitRecorded.current.add(currentId);
-      }
-    };
-    record();
-  }, [attemptId, currentId]);
+    const id = window.setInterval(() => {
+      const delta = consumeDelta();
+      if (delta <= 0 || syncingRef.current) return;
+
+      setResponses((prev) =>
+        prev.map((r) =>
+          r.question_id === currentId
+            ? { ...r, time_spent_seconds: r.time_spent_seconds + delta }
+            : r
+        )
+      );
+
+      void flushQuestionTiming({
+        attemptId,
+        questionId: currentId,
+        deltaSeconds: delta,
+      });
+    }, 12000);
+
+    return () => window.clearInterval(id);
+  }, [attemptId, consumeDelta, currentId]);
 
   const handleSaveAndNext = async () => {
     const q = currentQuestion;
     if (!q) return;
 
+    let leave: LeaveAnswer | undefined;
     if (q.type === "mcq") {
       if (!mcqSelection) {
         setError("Select an option or tap Skip");
         return;
       }
-      const ok = await persistAnswer(currentId, "answered", mcqSelection, null);
-      if (!ok) return;
+      leave = { status: "answered", selectedOption: mcqSelection };
     } else {
       if (!numericInput.trim()) {
         setError("Enter an answer or tap Skip");
@@ -232,45 +273,54 @@ export function TestTakingClient({ initial }: Props) {
         setNumericError("Enter a valid number (e.g. 3.14)");
         return;
       }
-      const ok = await persistAnswer(
-        currentId,
-        "answered",
-        null,
-        parseNumericInput(numericInput)
-      );
-      if (!ok) return;
+      leave = {
+        status: "answered",
+        numericAnswer: parseNumericInput(numericInput),
+      };
     }
 
     const next = questions[currentIndex + 1];
-    if (next) await navigateTo(next.id);
+    if (next) {
+      await navigateTo(next.id, leave);
+    } else {
+      const delta = consumeDelta();
+      applyLocalResponse(currentId, {
+        status: leave.status,
+        selected_option: leave.selectedOption ?? null,
+        numeric_answer: leave.numericAnswer ?? null,
+        time_spent_seconds:
+          (responses.find((r) => r.question_id === currentId)
+            ?.time_spent_seconds ?? 0) + delta,
+      });
+      void runSync(currentId, currentId, delta, leave);
+    }
   };
 
   const handleSkip = async () => {
-    const ok = await persistAnswer(currentId, "skipped", null, null);
-    if (!ok) return;
     const next = questions[currentIndex + 1];
-    if (next) await navigateTo(next.id);
+    const leave: LeaveAnswer = { status: "skipped" };
+    if (next) {
+      await navigateTo(next.id, leave);
+    } else {
+      const delta = consumeDelta();
+      applyLocalResponse(currentId, { status: "skipped", time_spent_seconds:
+          (responses.find((r) => r.question_id === currentId)?.time_spent_seconds ?? 0) + delta });
+      void runSync(currentId, currentId, delta, leave);
+    }
   };
 
   const handleExit = async () => {
-    await flushTiming(currentId);
+    const delta = consumeDelta();
+    const leave = buildLeaveAnswer();
+    void runSync(currentId, currentId, delta, leave);
     router.push(`/tests/${testId}`);
   };
 
   const handleFinalSubmit = async () => {
     setSubmitting(true);
-    await flushTiming(currentId);
-    const q = currentQuestion;
-    if (q?.type === "mcq" && mcqSelection) {
-      await persistAnswer(currentId, "answered", mcqSelection, null);
-    } else if (q?.type === "numeric" && numericInput.trim() && isValidNumericInput(numericInput)) {
-      await persistAnswer(
-        currentId,
-        "answered",
-        null,
-        parseNumericInput(numericInput)
-      );
-    }
+    const delta = consumeDelta();
+    const leave = buildLeaveAnswer();
+    await runSync(currentId, currentId, delta, leave);
 
     const res = await finalSubmit({ attemptId });
     setSubmitting(false);
@@ -380,7 +430,7 @@ export function TestTakingClient({ initial }: Props) {
           <QuestionPalette
             items={paletteItems}
             currentQuestionId={currentId}
-            onSelect={(id) => navigateTo(id)}
+            onSelect={(id) => void navigateTo(id)}
           />
           <div className="mt-2 flex flex-wrap gap-3 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">

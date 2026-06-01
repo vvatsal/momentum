@@ -29,3 +29,18 @@ export function getAppUrl(fallback?: string) {
     "http://localhost:3000"
   );
 }
+
+export type ResendConfig = {
+  apiKey: string;
+  fromEmail: string;
+};
+
+export function getResendConfig(): ResendConfig | null {
+  const apiKey = process.env.RESEND_API_KEY?.trim();
+  const fromEmail = process.env.RESEND_FROM_EMAIL?.trim();
+
+  if (!apiKey || !fromEmail) return null;
+  if (apiKey.includes("xxxxxxxx") || apiKey.length < 10) return null;
+
+  return { apiKey, fromEmail };
+}

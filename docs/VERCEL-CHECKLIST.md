@@ -8,6 +8,8 @@
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes |
 | `SUPABASE_SERVICE_ROLE_KEY` | Yes (seed + future server actions) |
 | `NEXT_PUBLIC_APP_URL` | Yes (`https://your-app.vercel.app`, no trailing slash) |
+| `RESEND_API_KEY` | Optional (publish notification emails) |
+| `RESEND_FROM_EMAIL` | Optional (verified sender in Resend) |
 
 Redeploy after adding or changing variables.
 

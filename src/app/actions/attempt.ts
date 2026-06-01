@@ -7,8 +7,10 @@ import { pickResumeQuestionId } from "@/lib/attempt/resume";
 import { scoreResponse, toSafeQuestion, type SafeQuestion } from "@/lib/scoring";
 import {
   finalSubmitSchema,
+  flushTimingSchema,
   saveAnswerSchema,
   saveTimingSchema,
+  syncNavigationSchema,
   visitQuestionSchema,
 } from "@/lib/validations/attempt";
 import type {
@@ -189,13 +191,22 @@ export async function startOrResumeAttempt(testId: string): Promise<AttemptBundl
     attemptRow.current_question_id
   );
 
-  if (resumeQuestionId !== attemptRow.current_question_id) {
-    await supabase
-      .from("attempts")
-      .update({ current_question_id: resumeQuestionId, last_seen_at: now })
-      .eq("id", attemptRow.id)
-      .eq("status", "in_progress");
-  }
+  const enterRow = responseMap.get(resumeQuestionId);
+  await supabase
+    .from("responses")
+    .update({
+      visited_count: (enterRow?.visited_count ?? 0) + 1,
+      first_seen_at: enterRow?.first_seen_at ?? now,
+      last_seen_at: now,
+    })
+    .eq("attempt_id", attemptRow.id)
+    .eq("question_id", resumeQuestionId);
+
+  await supabase
+    .from("attempts")
+    .update({ current_question_id: resumeQuestionId, last_seen_at: now })
+    .eq("id", attemptRow.id)
+    .eq("status", "in_progress");
 
   return {
     test: {
@@ -360,6 +371,115 @@ export async function recordQuestionVisit(input: unknown) {
   return { ok: true as const };
 }
 
+/** One round-trip when changing questions (timing + answer + visit). */
+export async function syncQuestionNavigation(input: unknown) {
+  const parsed = syncNavigationSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false as const, error: parsed.error.message };
+  }
+
+  const { supabase, userId } = await requireStudent();
+  const attempt = await getOwnedAttempt(supabase, parsed.data.attemptId, userId);
+
+  if (attempt.status !== "in_progress") {
+    return { ok: false as const, error: "Attempt already submitted" };
+  }
+
+  const now = new Date().toISOString();
+  const {
+    leaveQuestionId,
+    enterQuestionId,
+    leaveTimeDelta,
+    leaveAnswer,
+  } = parsed.data;
+
+  let newAttemptTotal = attempt.total_time_seconds;
+
+  if (leaveTimeDelta > 0 || leaveAnswer) {
+    const { data: leaveRow } = await supabase
+      .from("responses")
+      .select("time_spent_seconds, visited_count, first_seen_at")
+      .eq("attempt_id", attempt.id)
+      .eq("question_id", leaveQuestionId)
+      .single();
+
+    const leavePatch: Record<string, unknown> = {
+      last_seen_at: now,
+      updated_at: now,
+    };
+
+    if (leaveTimeDelta > 0) {
+      leavePatch.time_spent_seconds =
+        (leaveRow?.time_spent_seconds ?? 0) + leaveTimeDelta;
+      newAttemptTotal += leaveTimeDelta;
+    }
+
+    if (leaveAnswer) {
+      leavePatch.status = leaveAnswer.status;
+      if (leaveAnswer.status === "answered") {
+        leavePatch.selected_option = leaveAnswer.selectedOption ?? null;
+        leavePatch.numeric_answer = leaveAnswer.numericAnswer ?? null;
+        leavePatch.answered_at = now;
+      } else if (leaveAnswer.status === "skipped") {
+        leavePatch.selected_option = null;
+        leavePatch.numeric_answer = null;
+        leavePatch.answered_at = null;
+      }
+    }
+
+    const { error: leaveErr } = await supabase
+      .from("responses")
+      .update(leavePatch)
+      .eq("attempt_id", attempt.id)
+      .eq("question_id", leaveQuestionId);
+
+    if (leaveErr) return { ok: false as const, error: leaveErr.message };
+  }
+
+  const { data: enterRow } = await supabase
+    .from("responses")
+    .select("visited_count, first_seen_at")
+    .eq("attempt_id", attempt.id)
+    .eq("question_id", enterQuestionId)
+    .single();
+
+  const { error: enterErr } = await supabase
+    .from("responses")
+    .update({
+      visited_count: (enterRow?.visited_count ?? 0) + 1,
+      first_seen_at: enterRow?.first_seen_at ?? now,
+      last_seen_at: now,
+      updated_at: now,
+    })
+    .eq("attempt_id", attempt.id)
+    .eq("question_id", enterQuestionId);
+
+  if (enterErr) return { ok: false as const, error: enterErr.message };
+
+  const { error: attemptErr } = await supabase
+    .from("attempts")
+    .update({
+      current_question_id: enterQuestionId,
+      last_seen_at: now,
+      total_time_seconds: newAttemptTotal,
+    })
+    .eq("id", attempt.id)
+    .eq("status", "in_progress");
+
+  if (attemptErr) return { ok: false as const, error: attemptErr.message };
+
+  return { ok: true as const };
+}
+
+/** Background timing flush without blocking navigation. */
+export async function flushQuestionTiming(input: unknown) {
+  const parsed = flushTimingSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false as const, error: parsed.error.message };
+  }
+  return saveTiming(parsed.data);
+}
+
 export async function finalSubmit(input: unknown) {
   const parsed = finalSubmitSchema.safeParse(input);
   if (!parsed.success) {
@@ -390,6 +510,8 @@ export async function finalSubmit(input: unknown) {
   let totalScore = 0;
   let maxScore = 0;
 
+  const scoreUpdates: PromiseLike<unknown>[] = [];
+
   for (const q of questions as Question[]) {
     maxScore += Number(q.marks);
     const r = responses.find((x) => x.question_id === q.id) as Response | undefined;
@@ -403,14 +525,19 @@ export async function finalSubmit(input: unknown) {
 
     totalScore += awardedMarks;
 
-    await supabase
-      .from("responses")
-      .update({
-        is_correct: isCorrect,
-        awarded_marks: awardedMarks,
-      })
-      .eq("id", r.id);
+    scoreUpdates.push(
+      supabase
+        .from("responses")
+        .update({
+          is_correct: isCorrect,
+          awarded_marks: awardedMarks,
+        })
+        .eq("id", r.id)
+        .then((res) => res)
+    );
   }
+
+  await Promise.all(scoreUpdates);
 
   const now = new Date().toISOString();
   const { data: updated, error } = await supabase

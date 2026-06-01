@@ -8,8 +8,29 @@ Mobile-first online tests for students with an admin dashboard. Built with Next.
 |-------|--------|--------|
 | **1** | ✅ | Supabase schema, RLS, auth, admin/student roles |
 | **2** | ✅ | Student test-taking, per-question timer, palette, resume |
-| **3** | Planned | Admin test creation & publish |
-| **4** | Planned | Reports, CSV export, Resend emails |
+| **3** | ✅ | Admin test creation & publish |
+| **4** | ✅ | Reports, CSV export, Resend emails |
+
+## Phase 3 — Admin: create & publish tests
+
+1. Log in at `/admin/login`
+2. **Create new test** → add MCQ / numeric questions → **Publish**
+3. Optional: check **Email all students** (needs Resend env vars)
+
+| Route | Screen |
+|-------|--------|
+| `/admin` | Dashboard, test list |
+| `/admin/tests/new` | Create draft |
+| `/admin/tests/[id]` | Edit details, questions, publish |
+
+## Phase 4 — Reports & notifications
+
+| Route | Screen |
+|-------|--------|
+| `/admin/tests/[id]/reports` | Attempt scores, email log |
+| `/admin/tests/[id]/export` | CSV download (attempts) |
+
+Set `RESEND_API_KEY` and `RESEND_FROM_EMAIL` in `.env.local` / Vercel to send publish emails.
 
 ## Phase 2 — Try the student flow
 

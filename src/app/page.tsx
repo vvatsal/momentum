@@ -55,7 +55,7 @@ export default function LandingPage() {
       </div>
 
       <footer className="border-t py-4 text-center text-xs text-muted-foreground">
-        Phase 1 — Auth &amp; roles ready
+        Momentum — online exams for students &amp; admins
       </footer>
     </main>
   );
