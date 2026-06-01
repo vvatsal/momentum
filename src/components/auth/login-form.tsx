@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { getAppUrl } from "@/lib/env";
 import { createClient } from "@/lib/supabase/client";
 import { asProfileClient, getProfileRole } from "@/lib/supabase/profile";
 import { Button } from "@/components/ui/button";
@@ -14,7 +13,7 @@ import { Label } from "@/components/ui/label";
 
 const schema = z.object({
   email: z.string().email("Enter a valid email"),
-  password: z.string().min(6, "Password must be at least 6 characters").optional(),
+  password: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -22,6 +21,13 @@ type FormValues = z.infer<typeof schema>;
 interface LoginFormProps {
   mode: "student" | "admin";
   redirectTo?: string;
+}
+
+function getClientAppUrl() {
+  const fromEnv = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
+  if (fromEnv) return fromEnv;
+  if (typeof window !== "undefined") return window.location.origin;
+  return "http://localhost:3000";
 }
 
 export function LoginForm({ mode, redirectTo }: LoginFormProps) {
@@ -37,7 +43,7 @@ export function LoginForm({ mode, redirectTo }: LoginFormProps) {
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { email: "" },
+    defaultValues: { email: "", password: "" },
   });
 
   const onSubmit = async (values: FormValues) => {
@@ -46,9 +52,7 @@ export function LoginForm({ mode, redirectTo }: LoginFormProps) {
     setMessage(null);
 
     const supabase = createClient();
-    const appUrl = getAppUrl(
-      typeof window !== "undefined" ? window.location.origin : undefined
-    );
+    const appUrl = getClientAppUrl();
 
     try {
       if (useMagicLink && mode === "student") {
@@ -61,14 +65,16 @@ export function LoginForm({ mode, redirectTo }: LoginFormProps) {
         if (otpError) throw otpError;
         setMessage("Check your email for the magic link.");
       } else {
-        if (!values.password) {
-          setError("Password is required");
+        const password = values.password?.trim() ?? "";
+        if (password.length < 6) {
+          setError("Password must be at least 6 characters");
           setLoading(false);
           return;
         }
+
         const { error: signInError } = await supabase.auth.signInWithPassword({
           email: values.email,
-          password: values.password,
+          password,
         });
         if (signInError) throw signInError;
 
@@ -122,9 +128,6 @@ export function LoginForm({ mode, redirectTo }: LoginFormProps) {
             autoComplete="current-password"
             {...register("password")}
           />
-          {errors.password && (
-            <p className="text-sm text-destructive">{errors.password.message}</p>
-          )}
         </div>
       )}
 

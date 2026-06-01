@@ -1,6 +1,6 @@
 import { requireProfile } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
-import type { TestListItem } from "@/types/database";
+import { countStudents, listTestsForAdmin } from "@/lib/supabase/queries";
 import { AppHeader } from "@/components/layout/app-header";
 import {
   Card,
@@ -10,22 +10,16 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminDashboardPage() {
   const profile = await requireProfile("admin");
   const supabase = await createClient();
 
-  const [{ count: studentCount }, { data: testsData }] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("*", { count: "exact", head: true })
-      .eq("role", "student"),
-    supabase
-      .from("tests")
-      .select("id, title, status, created_at")
-      .order("created_at", { ascending: false }),
+  const [studentCount, tests] = await Promise.all([
+    countStudents(supabase),
+    listTestsForAdmin(supabase),
   ]);
-
-  const tests = (testsData ?? []) as TestListItem[];
 
   return (
     <div className="min-h-dvh">
@@ -39,13 +33,13 @@ export default async function AdminDashboardPage() {
           <Card>
             <CardHeader className="pb-2">
               <CardDescription>Students</CardDescription>
-              <CardTitle className="text-2xl">{studentCount ?? 0}</CardTitle>
+              <CardTitle className="text-2xl">{studentCount}</CardTitle>
             </CardHeader>
           </Card>
           <Card>
             <CardHeader className="pb-2">
               <CardDescription>Tests</CardDescription>
-              <CardTitle className="text-2xl">{tests?.length ?? 0}</CardTitle>
+              <CardTitle className="text-2xl">{tests.length}</CardTitle>
             </CardHeader>
           </Card>
         </div>
@@ -59,7 +53,7 @@ export default async function AdminDashboardPage() {
             <CardTitle className="text-base">All tests</CardTitle>
           </CardHeader>
           <CardContent>
-            {!tests?.length ? (
+            {tests.length === 0 ? (
               <p className="text-sm text-muted-foreground">No tests yet.</p>
             ) : (
               <ul className="divide-y">

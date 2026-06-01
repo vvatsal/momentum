@@ -1,6 +1,6 @@
 import { requireProfile } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
-import type { PublishedTestListItem } from "@/types/database";
+import { listPublishedTests } from "@/lib/supabase/queries";
 import { AppHeader } from "@/components/layout/app-header";
 import {
   Card,
@@ -10,17 +10,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
+export const dynamic = "force-dynamic";
+
 export default async function StudentDashboardPage() {
   const profile = await requireProfile("student");
   const supabase = await createClient();
-
-  const { data: testsData } = await supabase
-    .from("tests")
-    .select("id, title, description, starts_at, ends_at, duration_minutes")
-    .eq("status", "published")
-    .order("published_at", { ascending: false });
-
-  const tests = (testsData ?? []) as PublishedTestListItem[];
+  const tests = await listPublishedTests(supabase);
 
   return (
     <div className="min-h-dvh">
@@ -34,7 +29,7 @@ export default async function StudentDashboardPage() {
           Published tests available to you. Test-taking flow arrives in Phase 2.
         </p>
 
-        {!tests?.length ? (
+        {tests.length === 0 ? (
           <Card>
             <CardContent className="py-8 text-center text-sm text-muted-foreground">
               No tests available yet. Check back after your teacher publishes one.
