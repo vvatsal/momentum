@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { LoginForm } from "@/components/auth/login-form";
+import { SupabaseConfigAlert } from "@/components/auth/supabase-config-alert";
 import {
   Card,
   CardContent,
@@ -28,6 +29,7 @@ export default async function StudentLoginPage({
             </CardDescription>
           </CardHeader>
           <CardContent>
+            <SupabaseConfigAlert />
             {params.error === "auth" && (
               <p className="mb-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
                 Sign in link expired or invalid. Try again.

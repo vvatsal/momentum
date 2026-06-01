@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -30,6 +30,17 @@ function getClientAppUrl() {
   return "http://localhost:3000";
 }
 
+function isSupabaseConfiguredInBrowser() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
+  return (
+    url.includes(".supabase.co") &&
+    !url.includes("your-project") &&
+    key.length > 20 &&
+    !key.includes("your-anon")
+  );
+}
+
 function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
   return Promise.race([
     promise,
@@ -45,6 +56,15 @@ export function LoginForm({ mode, redirectTo }: LoginFormProps) {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [configError, setConfigError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isSupabaseConfiguredInBrowser()) {
+      setConfigError(
+        "This deployment has no Supabase URL in the app build. Add env vars on Vercel (Production), then Redeploy — login will not work until you do."
+      );
+    }
+  }, []);
 
   const {
     register,
@@ -56,6 +76,8 @@ export function LoginForm({ mode, redirectTo }: LoginFormProps) {
   });
 
   const onSubmit = async (values: FormValues) => {
+    if (configError) return;
+
     setLoading(true);
     setError(null);
     setMessage(null);
@@ -188,6 +210,11 @@ export function LoginForm({ mode, redirectTo }: LoginFormProps) {
         </button>
       )}
 
+      {configError && (
+        <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {configError}
+        </p>
+      )}
       {error && (
         <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {error}
@@ -199,7 +226,7 @@ export function LoginForm({ mode, redirectTo }: LoginFormProps) {
         </p>
       )}
 
-      <Button type="submit" className="w-full" disabled={loading}>
+      <Button type="submit" className="w-full" disabled={loading || !!configError}>
         {loading
           ? "Please wait…"
           : useMagicLink && mode === "student"

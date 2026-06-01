@@ -7,9 +7,24 @@ Mobile-first online tests for students with an admin dashboard. Built with Next.
 | Phase | Status | Scope |
 |-------|--------|--------|
 | **1** | ✅ | Supabase schema, RLS, auth, admin/student roles |
-| **2** | Planned | Student test-taking, per-question timer |
+| **2** | ✅ | Student test-taking, per-question timer, palette, resume |
 | **3** | Planned | Admin test creation & publish |
 | **4** | Planned | Reports, CSV export, Resend emails |
+
+## Phase 2 — Try the student flow
+
+```bash
+npm run db:seed
+npm run db:seed-sample
+```
+
+Log in as a student → **Dashboard** → **Sample Mathematics Quiz** → Start test.
+
+| Route | Screen |
+|-------|--------|
+| `/tests/[id]` | Instructions, start / resume |
+| `/tests/[id]/attempt` | Questions, palette, timer, auto-save |
+| `/tests/[id]/summary` | Score after final submit |
 
 ## Prerequisites
 

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { LoginForm } from "@/components/auth/login-form";
+import { SupabaseConfigAlert } from "@/components/auth/supabase-config-alert";
 import {
   Card,
   CardContent,
@@ -26,6 +27,7 @@ export default async function AdminLoginPage({
             <CardDescription>Email and password only.</CardDescription>
           </CardHeader>
           <CardContent>
+            <SupabaseConfigAlert />
             <LoginForm
               mode="admin"
               redirectTo={params.next ?? "/admin"}
