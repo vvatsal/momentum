@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { getProfileRole } from "@/lib/supabase/profile";
 import type { Database } from "@/types/database";
-import type { UserRole } from "@/types/database";
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -49,13 +49,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    const role = profile?.role as UserRole | undefined;
+    const role = (await getProfileRole(supabase, user.id)) ?? undefined;
 
     if (isAuthRoute) {
       const dest =

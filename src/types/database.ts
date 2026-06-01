@@ -221,8 +221,12 @@ export interface Database {
         Partial<Omit<EmailNotificationLog, "id">>
       >;
     };
-    Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Views: {
+      [_ in never]: never;
+    };
+    Functions: {
+      [_ in never]: never;
+    };
     Enums: {
       user_role: UserRole;
       question_type: QuestionType;
@@ -230,7 +234,9 @@ export interface Database {
       attempt_status: AttemptStatus;
       response_status: ResponseStatus;
     };
-    CompositeTypes: Record<string, never>;
+    CompositeTypes: {
+      [_ in never]: never;
+    };
   };
 }
 

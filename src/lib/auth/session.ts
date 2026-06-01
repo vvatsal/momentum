@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getProfileByUserId } from "@/lib/supabase/profile";
 import type { Profile } from "@/types/database";
 import { redirect } from "next/navigation";
 
@@ -18,13 +19,7 @@ export async function getProfile(): Promise<Profile | null> {
 
   if (!user) return null;
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .single();
-
-  return profile as Profile | null;
+  return getProfileByUserId(supabase, user.id);
 }
 
 export async function requireProfile(role?: "admin" | "student") {
