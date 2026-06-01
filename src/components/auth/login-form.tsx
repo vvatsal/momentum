@@ -226,7 +226,12 @@ export function LoginForm({ mode, redirectTo }: LoginFormProps) {
         </p>
       )}
 
-      <Button type="submit" className="w-full" disabled={loading || !!configError}>
+      <Button
+        type="submit"
+        className="w-full shine-btn"
+        size="lg"
+        disabled={loading || !!configError}
+      >
         {loading
           ? "Please wait…"
           : useMagicLink && mode === "student"

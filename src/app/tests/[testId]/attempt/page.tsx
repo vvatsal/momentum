@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { startOrResumeAttempt } from "@/app/actions/attempt";
 import { requireProfile } from "@/lib/auth/session";
+import { PageShell } from "@/components/layout/page-shell";
 import { TestTakingClient } from "@/components/test/test-taking-client";
 
 export const dynamic = "force-dynamic";
@@ -24,5 +25,9 @@ export default async function TestAttemptPage({
     ? { ...bundle, resumeQuestionId: searchParams.q }
     : bundle;
 
-  return <TestTakingClient initial={initial} />;
+  return (
+    <PageShell noPadding>
+      <TestTakingClient initial={initial} />
+    </PageShell>
+  );
 }

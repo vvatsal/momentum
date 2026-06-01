@@ -4,29 +4,28 @@
 
 @layer base {
   :root {
-    --background: 222 47% 6%;
+    --background: 228 35% 4%;
     --foreground: 210 40% 98%;
-    --card: 222 40% 10%;
+    --card: 228 32% 8%;
     --card-foreground: 210 40% 98%;
-    --primary: 199 89% 48%;
-    --primary-foreground: 222 47% 6%;
-    --secondary: 222 30% 14%;
+    --primary: 187 95% 53%;
+    --primary-foreground: 228 35% 4%;
+    --secondary: 228 28% 12%;
     --secondary-foreground: 210 40% 96%;
-    --muted: 222 28% 16%;
-    --muted-foreground: 215 20% 62%;
-    --accent: 262 83% 58%;
+    --muted: 228 24% 14%;
+    --muted-foreground: 215 18% 58%;
+    --accent: 270 95% 65%;
     --accent-foreground: 210 40% 98%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 210 40% 98%;
-    --border: 222 24% 18%;
-    --input: 222 24% 18%;
-    --ring: 199 89% 48%;
-    --radius: 0.875rem;
-    --palette-unanswered: 222 18% 28%;
-    --palette-answered: 152 69% 42%;
-    --palette-skipped: 38 92% 50%;
-    --palette-current: 199 89% 48%;
-    --glow: 199 89% 48%;
+    --border: 228 22% 16%;
+    --input: 228 22% 16%;
+    --ring: 187 95% 53%;
+    --radius: 1rem;
+    --palette-unanswered: 228 16% 22%;
+    --palette-answered: 152 76% 42%;
+    --palette-skipped: 38 95% 52%;
+    --palette-current: 187 95% 53%;
   }
 
   * {
@@ -43,91 +42,138 @@
   }
 
   ::selection {
-    @apply bg-primary/30 text-foreground;
+    @apply bg-primary/35 text-foreground;
   }
 }
 
 @layer components {
-  .mesh-bg {
-    background-color: hsl(var(--background));
+  .bg-grid {
     background-image:
-      radial-gradient(ellipse 80% 50% at 50% -20%, hsl(199 89% 48% / 0.18), transparent),
-      radial-gradient(ellipse 60% 40% at 100% 0%, hsl(262 83% 58% / 0.12), transparent),
-      radial-gradient(ellipse 50% 30% at 0% 100%, hsl(199 89% 48% / 0.08), transparent);
+      linear-gradient(to right, hsl(0 0% 100% / 0.03) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(0 0% 100% / 0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, black, transparent);
   }
 
   .glass {
-    @apply border border-white/[0.08] bg-card/70 shadow-xl shadow-black/20 backdrop-blur-xl;
+    @apply border border-white/[0.09] bg-gradient-to-br from-white/[0.09] to-white/[0.02] shadow-[0_8px_32px_rgba(0,0,0,0.45)] backdrop-blur-2xl;
   }
 
   .glass-strong {
-    @apply border border-white/[0.1] bg-card/85 shadow-2xl shadow-black/30 backdrop-blur-2xl;
+    @apply border border-white/[0.12] bg-gradient-to-br from-white/[0.12] to-white/[0.03] shadow-[0_12px_48px_rgba(0,0,0,0.5)] backdrop-blur-2xl;
+  }
+
+  .bento-card {
+    @apply glass relative overflow-hidden rounded-2xl;
+  }
+
+  .bento-card::before {
+    content: "";
+    @apply pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300;
+    background: radial-gradient(
+      600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+      hsl(187 95% 53% / 0.12),
+      transparent 40%
+    );
+  }
+
+  .bento-card:hover::before {
+    @apply opacity-100;
   }
 
   .gradient-text {
-    @apply bg-gradient-to-r from-cyan-400 via-sky-400 to-violet-400 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-[#67e8f9] via-[#38bdf8] to-[#c084fc] bg-clip-text text-transparent;
   }
 
-  .btn-glow {
-    box-shadow:
-      0 0 0 1px hsl(var(--primary) / 0.3),
-      0 4px 24px -4px hsl(var(--primary) / 0.45);
+  .gradient-border {
+    position: relative;
+    background: linear-gradient(
+      135deg,
+      hsl(187 95% 53% / 0.5),
+      hsl(270 95% 65% / 0.5)
+    );
+    padding: 1px;
+    border-radius: calc(var(--radius) + 2px);
   }
 
-  .card-hover {
-    @apply transition-[transform,box-shadow,border-color] duration-200 ease-out;
+  .gradient-border > * {
+    @apply rounded-[calc(var(--radius)+1px)] bg-card;
   }
 
-  .card-hover:hover {
-    @apply -translate-y-0.5 border-primary/25;
-    box-shadow:
-      0 0 0 1px hsl(var(--primary) / 0.15),
-      0 12px 40px -12px hsl(var(--primary) / 0.2);
+  .shine-btn {
+    @apply relative overflow-hidden;
   }
 
-  .tap-scale {
-    @apply transition-transform duration-100 active:scale-[0.97] touch-manipulation;
+  .shine-btn::after {
+    content: "";
+    @apply absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent;
+    animation: shine 3s ease-in-out infinite;
+  }
+
+  .status-bar {
+    @apply h-1 w-full overflow-hidden rounded-full bg-white/10;
+  }
+
+  .status-bar-fill {
+    @apply h-full rounded-full bg-gradient-to-r from-cyan-400 via-sky-400 to-violet-500 transition-all duration-500 ease-out;
+  }
+
+  .option-chip {
+    @apply relative w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-4 text-left text-sm font-medium backdrop-blur-sm transition-[border-color,background,transform,box-shadow] duration-200;
+  }
+
+  .option-chip:hover {
+    @apply border-white/20 bg-white/[0.08];
+  }
+
+  .option-chip-selected {
+    @apply border-cyan-400/60 bg-gradient-to-r from-cyan-500/20 to-violet-500/10 shadow-[0_0_24px_-4px_rgba(34,211,238,0.4)];
   }
 }
 
 @layer utilities {
-  .animate-fade-in {
-    animation: fade-in 0.35s ease-out both;
-  }
-
-  .animate-slide-up {
-    animation: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
-  }
-
-  .animate-stagger-1 {
-    animation-delay: 0.05s;
-  }
-
-  .animate-stagger-2 {
-    animation-delay: 0.1s;
-  }
-
-  .animate-stagger-3 {
-    animation-delay: 0.15s;
+  .text-balance {
+    text-wrap: balance;
   }
 }
 
-@keyframes fade-in {
-  from {
-    opacity: 0;
+@keyframes shine {
+  0% {
+    transform: translateX(-100%);
   }
-  to {
-    opacity: 1;
+  40%,
+  100% {
+    transform: translateX(100%);
   }
 }
 
-@keyframes slide-up {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
+@keyframes float {
+  0%,
+  100% {
     transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.2;
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0.6;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shine-btn::after {
+    animation: none;
   }
 }

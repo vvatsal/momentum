@@ -17,7 +17,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#0a0f1a",
+  themeColor: "#06080f",
 };
 
 export default function RootLayout({
@@ -27,9 +27,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`${sans.variable} font-sans min-h-dvh mesh-bg`}>
-        {children}
-      </body>
+      <body className={`${sans.variable} font-sans min-h-dvh`}>{children}</body>
     </html>
   );
 }

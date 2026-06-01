@@ -12,7 +12,6 @@ import {
 import { QuestionPalette } from "@/components/test/question-palette";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,7 +26,9 @@ import { useQuestionTimer } from "@/hooks/use-question-timer";
 import { formatDuration } from "@/lib/format";
 import { isValidNumericInput, parseNumericInput } from "@/lib/scoring";
 import type { ResponseStatus } from "@/types/database";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Check, Loader2 } from "lucide-react";
+import { slideInRight, staggerContainer, fadeUp } from "@/lib/motion";
 
 type Props = {
   initial: AttemptBundle;
@@ -40,6 +41,7 @@ type LeaveAnswer = {
 };
 
 export function TestTakingClient({ initial }: Props) {
+  const reduce = useReducedMotion();
   const router = useRouter();
   const [questions] = useState(initial.questions);
   const [responses, setResponses] = useState<AttemptResponseState[]>(
@@ -338,27 +340,47 @@ export function TestTakingClient({ initial }: Props) {
   }
 
   return (
-    <div className="mesh-bg flex min-h-dvh flex-col pb-28">
+    <div className="flex min-h-dvh flex-col pb-32">
       <header className="sticky top-0 z-40 border-b border-white/[0.06] glass-strong">
-        <div className="mx-auto max-w-lg space-y-2.5 px-4 py-3">
+        <div className="mx-auto max-w-lg space-y-3 px-4 py-3">
           <div className="flex items-center justify-between gap-2">
             <h1 className="truncate text-sm font-bold tracking-tight">
               {initial.test.title}
             </h1>
-            <span className="shrink-0 text-xs font-medium">
+            <AnimatePresence mode="wait">
               {saveState === "saving" && (
-                <span className="inline-flex items-center gap-1 text-muted-foreground">
-                  <Loader2 className="h-3 w-3 animate-spin text-cyan-400" /> Saving
-                </span>
+                <motion.span
+                  key="saving"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="inline-flex items-center gap-1 text-xs text-muted-foreground"
+                >
+                  <Loader2 className="h-3 w-3 animate-spin text-cyan-400" />
+                  Saving
+                </motion.span>
               )}
               {saveState === "saved" && (
-                <span className="inline-flex items-center gap-1 text-cyan-400">
+                <motion.span
+                  key="saved"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="inline-flex items-center gap-1 rounded-full bg-cyan-500/15 px-2 py-0.5 text-xs font-semibold text-cyan-300"
+                >
                   <Check className="h-3 w-3" /> Saved
-                </span>
+                </motion.span>
               )}
-            </span>
+            </AnimatePresence>
           </div>
-          <Progress value={progressPct} className="h-2" />
+          <div className="status-bar">
+            <motion.div
+              className="status-bar-fill"
+              initial={false}
+              animate={{ width: `${progressPct}%` }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            />
+          </div>
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>
               Q{currentIndex + 1}/{questions.length}
@@ -380,52 +402,74 @@ export function TestTakingClient({ initial }: Props) {
           </p>
         )}
 
-        <div className="glass animate-slide-up rounded-2xl p-5">
-          <p className="mb-2 inline-flex rounded-full bg-cyan-500/10 px-2.5 py-0.5 text-xs font-semibold text-cyan-300 ring-1 ring-cyan-500/20">
-            {currentQuestion.marks} mark
-            {Number(currentQuestion.marks) !== 1 ? "s" : ""}
-          </p>
-          <p className="text-base font-medium leading-relaxed">
-            {currentQuestion.question_text}
-          </p>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentId}
+            variants={reduce ? undefined : slideInRight}
+            initial="hidden"
+            animate="show"
+            exit="exit"
+            className="bento-card rounded-2xl p-5 sm:p-6"
+          >
+            <p className="mb-3 inline-flex rounded-full bg-gradient-to-r from-cyan-500/20 to-violet-500/20 px-3 py-1 text-xs font-bold text-cyan-200 ring-1 ring-white/10">
+              {currentQuestion.marks} mark
+              {Number(currentQuestion.marks) !== 1 ? "s" : ""}
+            </p>
+            <p className="text-lg font-semibold leading-relaxed tracking-tight">
+              {currentQuestion.question_text}
+            </p>
 
-          {currentQuestion.type === "mcq" && currentQuestion.options && (
-            <div className="mt-5 space-y-2">
-              {currentQuestion.options.map((opt) => (
-                <button
-                  key={opt}
-                  type="button"
-                  onClick={() => setMcqSelection(opt)}
-                  className={`tap-scale w-full rounded-xl border px-4 py-3.5 text-left text-sm font-medium transition-[border-color,background,box-shadow] duration-150 ${
-                    mcqSelection === opt
-                      ? "border-cyan-500/50 bg-cyan-500/15 shadow-glow-sm ring-1 ring-cyan-500/30"
-                      : "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/[0.08]"
-                  }`}
-                >
-                  {opt}
-                </button>
-              ))}
-            </div>
-          )}
+            {currentQuestion.type === "mcq" && currentQuestion.options && (
+              <motion.div
+                className="mt-6 space-y-2.5"
+                variants={reduce ? undefined : staggerContainer}
+                initial="hidden"
+                animate="show"
+              >
+                {currentQuestion.options.map((opt, i) => (
+                  <motion.button
+                    key={opt}
+                    type="button"
+                    variants={reduce ? undefined : fadeUp}
+                    onClick={() => setMcqSelection(opt)}
+                    whileTap={reduce ? undefined : { scale: 0.98 }}
+                    className={`option-chip ${
+                      mcqSelection === opt ? "option-chip-selected" : ""
+                    }`}
+                  >
+                    <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-lg bg-white/10 text-xs font-bold text-muted-foreground">
+                      {String.fromCharCode(65 + i)}
+                    </span>
+                    {opt}
+                  </motion.button>
+                ))}
+              </motion.div>
+            )}
 
-          {currentQuestion.type === "numeric" && (
-            <div className="mt-4 space-y-1">
-              <Input
-                type="text"
-                inputMode="decimal"
-                placeholder="Your answer"
-                value={numericInput}
-                onChange={(e) => {
-                  setNumericInput(e.target.value);
-                  setNumericError(null);
-                }}
-              />
-              {numericError && (
-                <p className="text-xs text-destructive">{numericError}</p>
-              )}
-            </div>
-          )}
-        </div>
+            {currentQuestion.type === "numeric" && (
+              <motion.div
+                initial={reduce ? false : { opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-6 space-y-1"
+              >
+                <Input
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="Type your answer…"
+                  value={numericInput}
+                  onChange={(e) => {
+                    setNumericInput(e.target.value);
+                    setNumericError(null);
+                  }}
+                  className="h-12 text-lg"
+                />
+                {numericError && (
+                  <p className="text-xs text-red-400">{numericError}</p>
+                )}
+              </motion.div>
+            )}
+          </motion.div>
+        </AnimatePresence>
 
         <div>
           <p className="mb-2 text-xs font-medium text-muted-foreground">
@@ -450,26 +494,32 @@ export function TestTakingClient({ initial }: Props) {
         </div>
       </main>
 
-      <footer className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/[0.06] glass-strong p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <div className="mx-auto flex max-w-lg flex-col gap-2">
-          <div className="grid grid-cols-2 gap-2">
-            <Button type="button" variant="outline" onClick={handleSkip}>
+      <footer className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/[0.08] glass-strong p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <div className="mx-auto flex max-w-lg flex-col gap-2.5">
+          <div className="grid grid-cols-2 gap-2.5">
+            <Button type="button" variant="outline" onClick={handleSkip} size="lg">
               Skip
             </Button>
-            <Button type="button" onClick={handleSaveAndNext}>
-              {currentIndex < questions.length - 1 ? "Save & next" : "Save"}
+            <Button
+              type="button"
+              onClick={handleSaveAndNext}
+              size="lg"
+              className="shine-btn"
+            >
+              {currentIndex < questions.length - 1 ? "Next →" : "Save"}
             </Button>
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <Button type="button" variant="ghost" onClick={handleExit}>
-              Exit (resume later)
+          <div className="grid grid-cols-2 gap-2.5">
+            <Button type="button" variant="ghost" onClick={handleExit} size="sm">
+              Exit
             </Button>
             <Button
               type="button"
               variant="secondary"
               onClick={() => setSubmitOpen(true)}
+              size="sm"
             >
-              Final submit
+              Submit test
             </Button>
           </div>
         </div>

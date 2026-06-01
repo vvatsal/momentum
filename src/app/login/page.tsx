@@ -1,14 +1,7 @@
 import Link from "next/link";
-import { LoginForm } from "@/components/auth/login-form";
+import { LoginPanel } from "@/components/auth/login-panel";
 import { SupabaseConfigAlert } from "@/components/auth/supabase-config-alert";
 import { PageShell } from "@/components/layout/page-shell";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 
 type SearchParams = { next?: string; error?: string };
 
@@ -20,33 +13,31 @@ export default async function StudentLoginPage({
   const params = await Promise.resolve(searchParams);
 
   return (
-    <PageShell centered className="justify-center py-8">
-      <div className="mx-auto w-full max-w-sm animate-slide-up">
-        <Card className="glass-strong">
-          <CardHeader>
-            <CardTitle>Student sign in</CardTitle>
-            <CardDescription>
-              Use your school email. Magic link or password.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <SupabaseConfigAlert />
-            {params.error === "auth" && (
-              <p className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-red-300">
-                Sign in link expired or invalid. Try again.
-              </p>
-            )}
-            <LoginForm mode="student" redirectTo={params.next} />
-            <p className="mt-6 text-center text-sm text-muted-foreground">
-              <Link
-                href="/"
-                className="font-medium text-cyan-400 hover:text-cyan-300"
-              >
-                ← Back to home
-              </Link>
-            </p>
-          </CardContent>
-        </Card>
+    <PageShell centered className="justify-center px-4 py-10">
+      <div className="mx-auto w-full max-w-md">
+        <div className="mb-8 text-center">
+          <h1 className="text-2xl font-black tracking-tight">
+            Student <span className="gradient-text">sign in</span>
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Magic link or password — your choice
+          </p>
+        </div>
+        <SupabaseConfigAlert />
+        {params.error === "auth" && (
+          <p className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+            Sign in link expired or invalid. Try again.
+          </p>
+        )}
+        <LoginPanel mode="student" redirectTo={params.next} />
+        <p className="mt-8 text-center text-sm text-muted-foreground">
+          <Link
+            href="/"
+            className="font-semibold text-cyan-400 hover:text-cyan-300"
+          >
+            ← Back to home
+          </Link>
+        </p>
       </div>
     </PageShell>
   );
