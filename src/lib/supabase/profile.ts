@@ -1,9 +1,22 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Profile, UserRole } from "@/types/database";
 
-/** Compatible with @supabase/ssr server and browser clients (avoids generic version mismatches). */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type AppSupabaseClient = SupabaseClient<any, "public", any>;
+/** Minimal shape shared by server and browser Supabase clients. */
+export type AppSupabaseClient = {
+  from(table: string): {
+    select(columns: string): {
+      eq(column: string, value: string): {
+        maybeSingle(): Promise<{
+          data: unknown;
+          error: { message: string } | null;
+        }>;
+      };
+    };
+  };
+};
+
+export function asProfileClient(client: unknown): AppSupabaseClient {
+  return client as AppSupabaseClient;
+}
 
 export async function getProfileRole(
   supabase: AppSupabaseClient,

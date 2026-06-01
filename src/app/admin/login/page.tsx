@@ -8,11 +8,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-export default function AdminLoginPage({
+type SearchParams = { next?: string };
+
+export default async function AdminLoginPage({
   searchParams,
 }: {
-  searchParams: { next?: string };
+  searchParams: SearchParams | Promise<SearchParams>;
 }) {
+  const params = await Promise.resolve(searchParams);
+
   return (
     <main className="flex min-h-dvh flex-col justify-center px-4 py-8">
       <div className="mx-auto w-full max-w-sm">
@@ -24,7 +28,7 @@ export default function AdminLoginPage({
           <CardContent>
             <LoginForm
               mode="admin"
-              redirectTo={searchParams.next ?? "/admin"}
+              redirectTo={params.next ?? "/admin"}
             />
             <p className="mt-6 text-center text-sm text-muted-foreground">
               <Link href="/" className="text-primary hover:underline">

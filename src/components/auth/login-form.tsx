@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { getAppUrl } from "@/lib/env";
 import { createClient } from "@/lib/supabase/client";
-import { getProfileRole } from "@/lib/supabase/profile";
+import { asProfileClient, getProfileRole } from "@/lib/supabase/profile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,7 +46,9 @@ export function LoginForm({ mode, redirectTo }: LoginFormProps) {
     setMessage(null);
 
     const supabase = createClient();
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? window.location.origin;
+    const appUrl = getAppUrl(
+      typeof window !== "undefined" ? window.location.origin : undefined
+    );
 
     try {
       if (useMagicLink && mode === "student") {
@@ -74,7 +77,7 @@ export function LoginForm({ mode, redirectTo }: LoginFormProps) {
         } = await supabase.auth.getUser();
         if (!user) throw new Error("Sign in failed");
 
-        const role = await getProfileRole(supabase, user.id);
+        const role = await getProfileRole(asProfileClient(supabase), user.id);
         if (mode === "admin" && role !== "admin") {
           await supabase.auth.signOut();
           throw new Error("This account is not an admin.");

@@ -1,9 +1,7 @@
 import { createBrowserClient } from "@supabase/ssr";
+import { getSupabaseAnonEnv } from "@/lib/env";
 
-/** Untyped browser client — avoids `never` inference on partial selects during build. */
 export function createClient() {
-  return createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const { url, anonKey } = getSupabaseAnonEnv();
+  return createBrowserClient(url, anonKey);
 }

@@ -20,14 +20,14 @@ Copy the URL GitHub shows, e.g.:
 In Terminal:
 
 ```bash
-cd /Users/vivekvatsal/Documents/GitHub/momentum
+cd /Users/vivekvatsal/Projects/momentum
 ./scripts/push-to-github.sh https://github.com/YOUR_USERNAME/momentum.git
 ```
 
 Or manually:
 
 ```bash
-cd /Users/vivekvatsal/Documents/GitHub/momentum
+cd /Users/vivekvatsal/Projects/momentum
 git remote remove origin 2>/dev/null || true
 git remote add origin https://github.com/YOUR_USERNAME/momentum.git
 git push -u origin main
@@ -53,4 +53,4 @@ If `git push` asks for credentials:
 | Git repo in `momentum/` | ✅ (separate from parent `Projects` folder) |
 | Initial commit on `main` | ✅ |
 | `.env` / secrets | ✅ ignored (not committed) |
-| Remote `origin` | `https://github.com/vvatsal/momentum.git` |
+| Remote `origin` | Set to `https://github.com/vivekvatsal/momentum.git` — change if your username or repo name differs |

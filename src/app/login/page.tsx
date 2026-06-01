@@ -8,11 +8,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-export default function StudentLoginPage({
+type SearchParams = { next?: string; error?: string };
+
+export default async function StudentLoginPage({
   searchParams,
 }: {
-  searchParams: { next?: string; error?: string };
+  searchParams: SearchParams | Promise<SearchParams>;
 }) {
+  const params = await Promise.resolve(searchParams);
+
   return (
     <main className="flex min-h-dvh flex-col justify-center px-4 py-8">
       <div className="mx-auto w-full max-w-sm">
@@ -24,12 +28,12 @@ export default function StudentLoginPage({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {searchParams.error === "auth" && (
+            {params.error === "auth" && (
               <p className="mb-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
                 Sign in link expired or invalid. Try again.
               </p>
             )}
-            <LoginForm mode="student" redirectTo={searchParams.next} />
+            <LoginForm mode="student" redirectTo={params.next} />
             <p className="mt-6 text-center text-sm text-muted-foreground">
               <Link href="/" className="text-primary hover:underline">
                 Back to home
