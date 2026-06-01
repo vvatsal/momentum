@@ -64,3 +64,27 @@ export const publishTestSchema = z.object({
 export const archiveTestSchema = z.object({
   testId: z.string().uuid(),
 });
+
+export const bulkQuestionsSchema = z.object({
+  testId: z.string().uuid(),
+  questions: z.array(
+    z.discriminatedUnion("type", [
+      z.object({
+        type: z.literal("mcq"),
+        question_text: z.string().min(1),
+        marks: z.coerce.number().min(0.5).max(100),
+        options: z.array(z.string().min(1)).min(2).max(8),
+        correct_option: z.string().min(1),
+        explanation: z.string().optional().nullable(),
+      }),
+      z.object({
+        type: z.literal("numeric"),
+        question_text: z.string().min(1),
+        marks: z.coerce.number().min(0.5).max(100),
+        correct_value: z.coerce.number(),
+        numeric_tolerance: z.coerce.number().min(0).optional().nullable(),
+        explanation: z.string().optional().nullable(),
+      }),
+    ])
+  ),
+});

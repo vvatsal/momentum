@@ -10,11 +10,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type {
+import {
   McqCorrectAnswer,
   NumericCorrectAnswer,
   Question,
 } from "@/types/database";
+import { BulkUploadDialog } from "./bulk-upload-dialog";
+import { AIQuestionGenerator } from "./ai-question-generator";
 
 type Props = {
   testId: string;
@@ -112,7 +114,7 @@ export function QuestionEditor({ testId, questions, isLocked }: Props) {
       )}
 
       {!adding && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button type="button" variant="outline" onClick={() => setAdding("mcq")}>
             + MCQ
           </Button>
@@ -123,6 +125,10 @@ export function QuestionEditor({ testId, questions, isLocked }: Props) {
           >
             + Numeric
           </Button>
+          <div className="ml-auto flex gap-2">
+            <AIQuestionGenerator testId={testId} />
+            <BulkUploadDialog testId={testId} />
+          </div>
         </div>
       )}
     </div>

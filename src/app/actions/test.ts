@@ -6,6 +6,7 @@ import { notifyStudentsTestPublished } from "@/lib/email/publish-notify";
 import { createClient } from "@/lib/supabase/server";
 import {
   archiveTestSchema,
+  bulkQuestionsSchema,
   createTestSchema,
   deleteQuestionSchema,
   mcqQuestionSchema,
@@ -200,6 +201,56 @@ export async function saveNumericQuestion(input: unknown): Promise<ActionResult>
   }
 
   revalidateTest(d.testId);
+  return { ok: true };
+}
+
+export async function saveBulkQuestions(input: unknown): Promise<ActionResult> {
+  const { supabase } = await requireAdmin();
+  const parsed = bulkQuestionsSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: "Invalid bulk questions data" };
+  }
+
+  const { testId, questions } = parsed.data;
+  const locked = await isTestLocked(supabase, testId);
+  if (locked) return { ok: false, error: "Test is locked — cannot edit questions" };
+
+  const nextIndex = await nextQuestionIndex(supabase, testId);
+
+  const rows = questions.map((q, i) => {
+    const base = {
+      test_id: testId,
+      type: q.type,
+      question_text: q.question_text,
+      marks: q.marks,
+      explanation: q.explanation ?? null,
+      order_index: nextIndex + i,
+    };
+
+    if (q.type === "mcq") {
+      return {
+        ...base,
+        options: q.options,
+        correct_answer: { option: q.correct_option } as McqCorrectAnswer,
+        numeric_tolerance: null,
+      };
+    } else {
+      return {
+        ...base,
+        options: null,
+        correct_answer: { value: q.correct_value } as NumericCorrectAnswer,
+        numeric_tolerance: q.numeric_tolerance ?? null,
+      };
+    }
+  });
+
+  const { error } = await supabase.from("questions").insert(rows);
+
+  if (error) {
+    return { ok: false, error: error.message };
+  }
+
+  revalidateTest(testId);
   return { ok: true };
 }
 

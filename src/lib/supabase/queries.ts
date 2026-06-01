@@ -274,3 +274,38 @@ export async function listEmailLogForTest(
   if (error || !data) return [];
   return data;
 }
+
+export async function listResponsesForTest(
+  supabase: unknown,
+  testId: string
+) {
+  const client = supabase as {
+    from(table: "responses"): {
+      select(columns: string): {
+        in(column: string, values: string[]): Promise<{
+          data: { question_id: string; is_correct: boolean | null; awarded_marks: number | null }[] | null;
+        }>;
+      };
+    };
+    from(table: "attempts"): {
+      select(columns: string): {
+        eq(column: string, value: string): Promise<{ data: { id: string }[] | null }>;
+      };
+    };
+  };
+
+  const { data: attempts } = await client
+    .from("attempts")
+    .select("id")
+    .eq("test_id", testId);
+
+  if (!attempts?.length) return [];
+
+  const attemptIds = attempts.map((a) => a.id);
+  const { data: responses } = await client
+    .from("responses")
+    .select("question_id, is_correct, awarded_marks")
+    .in("attempt_id", attemptIds);
+
+  return responses ?? [];
+}

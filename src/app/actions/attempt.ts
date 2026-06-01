@@ -592,7 +592,7 @@ export async function getSubmittedSummary(testId: string) {
 
   const { data: questions } = await supabase
     .from("questions")
-    .select("id, order_index, question_text, marks, type")
+    .select("id, order_index, question_text, marks, type, options, correct_answer, explanation")
     .eq("test_id", testId)
     .order("order_index", { ascending: true });
 

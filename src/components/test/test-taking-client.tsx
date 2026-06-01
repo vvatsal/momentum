@@ -12,6 +12,7 @@ import {
 import { QuestionPalette } from "@/components/test/question-palette";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -76,8 +77,8 @@ export function TestTakingClient({ initial }: Props) {
   const progressPct =
     questions.length > 0
       ? (responses.filter((r) => r.status !== "unanswered").length /
-          questions.length) *
-        100
+        questions.length) *
+      100
       : 0;
 
   const paletteItems = useMemo(
@@ -305,8 +306,10 @@ export function TestTakingClient({ initial }: Props) {
       await navigateTo(next.id, leave);
     } else {
       const delta = consumeDelta();
-      applyLocalResponse(currentId, { status: "skipped", time_spent_seconds:
-          (responses.find((r) => r.question_id === currentId)?.time_spent_seconds ?? 0) + delta });
+      applyLocalResponse(currentId, {
+        status: "skipped", time_spent_seconds:
+          (responses.find((r) => r.question_id === currentId)?.time_spent_seconds ?? 0) + delta
+      });
       void runSync(currentId, currentId, delta, leave);
     }
   };
@@ -341,56 +344,38 @@ export function TestTakingClient({ initial }: Props) {
 
   return (
     <div className="flex min-h-dvh flex-col pb-32">
-      <header className="sticky top-0 z-40 border-b border-white/[0.06] glass-strong">
-        <div className="mx-auto max-w-lg space-y-3 px-4 py-3">
-          <div className="flex items-center justify-between gap-2">
-            <h1 className="truncate text-sm font-bold tracking-tight">
-              {initial.test.title}
-            </h1>
-            <AnimatePresence mode="wait">
-              {saveState === "saving" && (
-                <motion.span
-                  key="saving"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="inline-flex items-center gap-1 text-xs text-muted-foreground"
-                >
-                  <Loader2 className="h-3 w-3 animate-spin text-cyan-400" />
-                  Saving
-                </motion.span>
+      <header className="sticky top-0 z-40 border-b border-white/[0.06] glass backdrop-blur-2xl">
+        <div className="mx-auto max-w-lg px-4 py-4">
+          <div className="flex items-center justify-between gap-4 mb-4">
+            <div className="min-w-0">
+              <h1 className="truncate text-base font-bold tracking-tight">
+                {initial.test.title}
+              </h1>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                  Question {currentIndex + 1} of {questions.length}
+                </span>
+              </div>
+            </div>
+            <div className="flex flex-col items-end">
+              <span className="text-sm font-mono font-bold tabular-nums text-primary">
+                {formatDuration(totalActiveSeconds)}
+              </span>
+              {durationLimit != null && (
+                <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-tighter">
+                  Limit: {formatDuration(durationLimit)}
+                </span>
               )}
-              {saveState === "saved" && (
-                <motion.span
-                  key="saved"
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="inline-flex items-center gap-1 rounded-full bg-cyan-500/15 px-2 py-0.5 text-xs font-semibold text-cyan-300"
-                >
-                  <Check className="h-3 w-3" /> Saved
-                </motion.span>
-              )}
-            </AnimatePresence>
+            </div>
           </div>
-          <div className="status-bar">
+
+          <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-white/5">
             <motion.div
-              className="status-bar-fill"
+              className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary via-sky-400 to-accent"
               initial={false}
               animate={{ width: `${progressPct}%` }}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              transition={{ type: "spring", stiffness: 200, damping: 25 }}
             />
-          </div>
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>
-              Q{currentIndex + 1}/{questions.length}
-            </span>
-            <span>
-              Time {formatDuration(totalActiveSeconds)}
-              {durationLimit != null && (
-                <> / {formatDuration(durationLimit)}</>
-              )}
-            </span>
           </div>
         </div>
       </header>
@@ -409,15 +394,42 @@ export function TestTakingClient({ initial }: Props) {
             initial="hidden"
             animate="show"
             exit="exit"
-            className="bento-card rounded-2xl p-5 sm:p-6"
+            className="bento-card p-6 sm:p-8"
           >
-            <p className="mb-3 inline-flex rounded-full bg-gradient-to-r from-cyan-500/20 to-violet-500/20 px-3 py-1 text-xs font-bold text-cyan-200 ring-1 ring-white/10">
-              {currentQuestion.marks} mark
-              {Number(currentQuestion.marks) !== 1 ? "s" : ""}
-            </p>
-            <p className="text-lg font-semibold leading-relaxed tracking-tight">
+            <div className="flex items-center justify-between mb-6">
+              <Badge variant="secondary" className="h-6 px-3 font-bold uppercase tracking-widest text-[10px]">
+                {currentQuestion.marks} mark{Number(currentQuestion.marks) !== 1 ? "s" : ""}
+              </Badge>
+              <AnimatePresence mode="wait">
+                {saveState === "saving" && (
+                  <motion.div
+                    key="saving"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
+                  >
+                    <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                    Syncing
+                  </motion.div>
+                )}
+                {saveState === "saved" && (
+                  <motion.div
+                    key="saved"
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-emerald-400"
+                  >
+                    <Check className="h-3 w-3" /> Saved
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            <h2 className="text-xl font-bold leading-relaxed tracking-tight">
               {currentQuestion.question_text}
-            </p>
+            </h2>
 
             {currentQuestion.type === "mcq" && currentQuestion.options && (
               <motion.div
@@ -433,9 +445,8 @@ export function TestTakingClient({ initial }: Props) {
                     variants={reduce ? undefined : fadeUp}
                     onClick={() => setMcqSelection(opt)}
                     whileTap={reduce ? undefined : { scale: 0.98 }}
-                    className={`option-chip ${
-                      mcqSelection === opt ? "option-chip-selected" : ""
-                    }`}
+                    className={`option-chip ${mcqSelection === opt ? "option-chip-selected" : ""
+                      }`}
                   >
                     <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-lg bg-white/10 text-xs font-bold text-muted-foreground">
                       {String.fromCharCode(65 + i)}
@@ -494,32 +505,33 @@ export function TestTakingClient({ initial }: Props) {
         </div>
       </main>
 
-      <footer className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/[0.08] glass-strong p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <div className="mx-auto flex max-w-lg flex-col gap-2.5">
-          <div className="grid grid-cols-2 gap-2.5">
-            <Button type="button" variant="outline" onClick={handleSkip} size="lg">
-              Skip
+      <footer className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/[0.08] glass p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <div className="mx-auto flex max-w-lg flex-col gap-3">
+          <div className="grid grid-cols-2 gap-3">
+            <Button type="button" variant="outline" onClick={handleSkip} size="lg" className="h-12 rounded-2xl font-bold border-white/10 hover:bg-white/5">
+              Skip Question
             </Button>
             <Button
               type="button"
               onClick={handleSaveAndNext}
               size="lg"
-              className="shine-btn"
+              className="h-12 rounded-2xl font-bold shine-btn"
             >
-              {currentIndex < questions.length - 1 ? "Next →" : "Save"}
+              {currentIndex < questions.length - 1 ? "Next Question" : "Save Answer"}
             </Button>
           </div>
-          <div className="grid grid-cols-2 gap-2.5">
-            <Button type="button" variant="ghost" onClick={handleExit} size="sm">
-              Exit
+          <div className="flex items-center justify-between gap-4 px-1">
+            <Button type="button" variant="ghost" onClick={handleExit} size="sm" className="text-muted-foreground hover:text-foreground font-bold text-xs uppercase tracking-widest">
+              Exit Test
             </Button>
             <Button
               type="button"
               variant="secondary"
               onClick={() => setSubmitOpen(true)}
               size="sm"
+              className="h-8 rounded-xl px-4 text-[10px] font-black uppercase tracking-widest border border-white/5"
             >
-              Submit test
+              Finish & Submit
             </Button>
           </div>
         </div>

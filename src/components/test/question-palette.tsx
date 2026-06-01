@@ -33,32 +33,25 @@ export function QuestionPalette({
             type="button"
             layout={!reduce}
             onClick={() => onSelect(item.questionId)}
-            whileHover={reduce ? undefined : { scale: 1.06 }}
-            whileTap={reduce ? undefined : { scale: 0.94 }}
+            whileHover={reduce ? undefined : { scale: 1.1, y: -2 }}
+            whileTap={reduce ? undefined : { scale: 0.9 }}
             className={cn(
-              "relative flex h-11 items-center justify-center rounded-xl text-sm font-bold transition-colors duration-200",
+              "relative flex h-10 items-center justify-center rounded-xl text-xs font-black transition-all duration-300",
               isCurrent &&
-                "z-10 bg-gradient-to-br from-cyan-400 to-violet-500 text-white shadow-[0_0_20px_-4px_rgba(34,211,238,0.6)]",
+              "z-10 bg-gradient-to-br from-primary to-accent text-white shadow-[0_0_25px_-5px_hsla(190,100%,50%,0.5)]",
               item.status === "answered" &&
-                !isCurrent &&
-                "bg-emerald-500/90 text-white shadow-md shadow-emerald-500/25",
+              !isCurrent &&
+              "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30",
               item.status === "skipped" &&
-                !isCurrent &&
-                "bg-amber-500/90 text-white",
+              !isCurrent &&
+              "bg-amber-500/20 text-amber-400 border border-amber-500/30",
               item.status === "unanswered" &&
-                !isCurrent &&
-                "border border-white/10 bg-white/5 text-muted-foreground hover:border-cyan-400/30 hover:bg-white/10"
+              !isCurrent &&
+              "bg-white/[0.03] border border-white/[0.06] text-muted-foreground hover:bg-white/[0.08] hover:border-white/20"
             )}
             aria-label={`Question ${item.index + 1}, ${item.status}`}
             aria-current={isCurrent ? "true" : undefined}
           >
-            {isCurrent && !reduce && (
-              <motion.span
-                layoutId="palette-ring"
-                className="absolute inset-0 rounded-xl ring-2 ring-white/40"
-                transition={{ type: "spring", stiffness: 500, damping: 28 }}
-              />
-            )}
             {item.index + 1}
           </motion.button>
         );

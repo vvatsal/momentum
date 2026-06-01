@@ -28,87 +28,116 @@ export function AdminDashboardClient({
         variants={reduce ? undefined : staggerContainer}
         initial="hidden"
         animate="show"
-        className="grid grid-cols-2 gap-3"
+        className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
       >
-        <motion.div variants={fadeUp} className="bento-card p-5">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Students
-          </p>
-          <p className="mt-1 text-4xl font-black tabular-nums gradient-text">
+        <motion.div variants={fadeUp} className="bento-card p-6 group">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              Total Students
+            </p>
+            <div className="h-2 w-2 rounded-full bg-primary animate-pulse-glow" />
+          </div>
+          <p className="text-4xl font-black tabular-nums gradient-text">
             {studentCount}
           </p>
+          <p className="mt-2 text-xs text-muted-foreground font-medium">Active learners</p>
         </motion.div>
-        <motion.div variants={fadeUp} className="bento-card p-5">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Tests
-          </p>
-          <p className="mt-1 text-4xl font-black tabular-nums gradient-text">
+
+        <motion.div variants={fadeUp} className="bento-card p-6 group">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              Total Tests
+            </p>
+            <div className="h-2 w-2 rounded-full bg-accent animate-pulse-glow" />
+          </div>
+          <p className="text-4xl font-black tabular-nums gradient-text">
             {tests.length}
           </p>
+          <p className="mt-2 text-xs text-muted-foreground font-medium">Created assessments</p>
         </motion.div>
-      </motion.div>
 
-      <motion.div variants={fadeUp} initial="hidden" animate="show">
-        <Button className="mt-5 w-full shine-btn sm:w-auto" size="lg" asChild>
-          <Link href="/admin/tests/new">
-            <Plus className="h-4 w-4" />
-            Create new test
+        <motion.div variants={fadeUp} className="sm:col-span-2 lg:col-span-1">
+          <Link href="/admin/tests/new" className="block h-full">
+            <div className="bento-card h-full p-6 flex flex-col items-center justify-center gap-3 border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 transition-all group">
+              <div className="h-12 w-12 rounded-2xl bg-primary/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Plus className="h-6 w-6 text-primary" />
+              </div>
+              <p className="font-bold text-primary">Create New Test</p>
+            </div>
           </Link>
-        </Button>
+        </motion.div>
       </motion.div>
 
       <motion.div
         variants={reduce ? undefined : fadeUp}
         initial="hidden"
         animate="show"
-        className="bento-card mt-5"
+        className="bento-card mt-6"
       >
-        <div className="border-b border-white/[0.06] p-5">
-          <h2 className="font-bold">All tests</h2>
-          <p className="text-sm text-muted-foreground">Tap to edit or view reports</p>
+        <div className="border-b border-white/[0.06] p-6 flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-bold tracking-tight">All Tests</h2>
+            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mt-0.5">Manage your assessments</p>
+          </div>
+          <Badge variant="secondary" className="font-mono">{tests.length}</Badge>
         </div>
+
         {tests.length === 0 ? (
-          <p className="p-5 text-sm text-muted-foreground">No tests yet.</p>
+          <div className="p-12 text-center">
+            <p className="text-sm text-muted-foreground">No tests created yet.</p>
+          </div>
         ) : (
           <motion.ul
             variants={reduce ? undefined : staggerContainer}
             initial="hidden"
             animate="show"
-            className="divide-y divide-white/[0.06]"
+            className="divide-y divide-white/[0.04]"
           >
             {tests.map((t) => (
               <motion.li
                 key={t.id}
                 variants={listItem}
-                className="flex items-center justify-between gap-2 px-5 py-4"
+                className="group hover:bg-white/[0.02] transition-colors"
               >
-                <Link
-                  href={`/admin/tests/${t.id}`}
-                  className="min-w-0 flex-1 font-semibold transition-colors hover:text-cyan-400"
-                >
-                  {t.title}
-                </Link>
-                <span className="flex shrink-0 items-center gap-2">
-                  {(t.status === "published" || t.status === "archived") && (
+                <div className="flex items-center justify-between gap-4 px-6 py-5">
+                  <div className="min-w-0 flex-1">
                     <Link
-                      href={`/admin/tests/${t.id}/reports`}
-                      className="text-xs font-semibold text-cyan-400/80 hover:text-cyan-300"
+                      href={`/admin/tests/${t.id}`}
+                      className="block font-bold text-base group-hover:text-primary transition-colors truncate"
                     >
-                      Reports
+                      {t.title}
                     </Link>
-                  )}
-                  <Badge
-                    variant={
-                      t.status === "published"
-                        ? "success"
-                        : t.status === "draft"
-                          ? "muted"
-                          : "secondary"
-                    }
-                  >
-                    {t.status}
-                  </Badge>
-                </span>
+                    <div className="flex items-center gap-3 mt-1">
+                      <Badge
+                        variant={
+                          t.status === "published"
+                            ? "success"
+                            : t.status === "draft"
+                              ? "muted"
+                              : "secondary"
+                        }
+                        className="h-5 text-[10px] uppercase tracking-tighter"
+                      >
+                        {t.status}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {(t.status === "published" || t.status === "archived") && (
+                      <Button variant="ghost" size="sm" asChild className="h-8 text-xs font-bold text-primary hover:bg-primary/10">
+                        <Link href={`/admin/tests/${t.id}/reports`}>
+                          Reports
+                        </Link>
+                      </Button>
+                    )}
+                    <Button variant="outline" size="sm" asChild className="h-8 text-xs font-bold border-white/10 hover:bg-white/5">
+                      <Link href={`/admin/tests/${t.id}`}>
+                        Edit
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
               </motion.li>
             ))}
           </motion.ul>

@@ -7,9 +7,12 @@ import {
   getTestForAdmin,
   listAttemptsForTest,
   listEmailLogForTest,
+  listQuestionsForTest,
+  listResponsesForTest,
 } from "@/lib/supabase/queries";
 import { AppHeader } from "@/components/layout/app-header";
 import { PageShell } from "@/components/layout/page-shell";
+import { TestAnalytics } from "@/components/admin/test-analytics";
 import {
   Card,
   CardContent,
@@ -32,9 +35,11 @@ export default async function TestReportsPage({
 
   if (!test) notFound();
 
-  const [attempts, emailLog] = await Promise.all([
+  const [attempts, emailLog, questions, responses] = await Promise.all([
     listAttemptsForTest(supabase, params.testId),
     listEmailLogForTest(supabase, params.testId),
+    listQuestionsForTest(supabase, params.testId),
+    listResponsesForTest(supabase, params.testId),
   ]);
 
   const submitted = attempts.filter((a) => a.status === "submitted");
@@ -53,6 +58,12 @@ export default async function TestReportsPage({
             </a>
           </Button>
         </div>
+
+        <TestAnalytics
+          questions={questions}
+          attempts={attempts}
+          responses={responses}
+        />
 
         <div className="grid grid-cols-3 gap-3">
           <Card>
@@ -112,8 +123,8 @@ export default async function TestReportsPage({
                         <td className="py-2 pr-2 capitalize">{a.status}</td>
                         <td className="py-2 pr-2">
                           {a.status === "submitted" &&
-                          a.total_score != null &&
-                          a.max_score != null
+                            a.total_score != null &&
+                            a.max_score != null
                             ? `${a.total_score} / ${a.max_score}`
                             : "—"}
                         </td>
@@ -144,13 +155,12 @@ export default async function TestReportsPage({
                   >
                     <span className="truncate">{e.recipient_email}</span>
                     <span
-                      className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${
-                        e.status === "sent"
-                          ? "bg-green-100 text-green-800"
-                          : e.status === "failed"
-                            ? "bg-red-100 text-red-800"
-                            : "bg-muted"
-                      }`}
+                      className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${e.status === "sent"
+                        ? "bg-green-100 text-green-800"
+                        : e.status === "failed"
+                          ? "bg-red-100 text-red-800"
+                          : "bg-muted"
+                        }`}
                     >
                       {e.status}
                     </span>
