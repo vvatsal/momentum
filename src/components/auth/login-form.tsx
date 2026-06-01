@@ -30,6 +30,15 @@ function getClientAppUrl() {
   return "http://localhost:3000";
 }
 
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(message)), ms)
+    ),
+  ]);
+}
+
 export function LoginForm({ mode, redirectTo }: LoginFormProps) {
   const router = useRouter();
   const [useMagicLink, setUseMagicLink] = useState(mode === "student");
@@ -51,17 +60,33 @@ export function LoginForm({ mode, redirectTo }: LoginFormProps) {
     setError(null);
     setMessage(null);
 
-    const supabase = createClient();
+    let supabase;
+    try {
+      supabase = createClient();
+    } catch (configError) {
+      setError(
+        configError instanceof Error
+          ? configError.message
+          : "App is not configured. Redeploy Vercel after setting env vars."
+      );
+      setLoading(false);
+      return;
+    }
+
     const appUrl = getClientAppUrl();
 
     try {
       if (useMagicLink && mode === "student") {
-        const { error: otpError } = await supabase.auth.signInWithOtp({
-          email: values.email,
-          options: {
-            emailRedirectTo: `${appUrl}/auth/callback?next=${encodeURIComponent(redirectTo ?? "/dashboard")}`,
-          },
-        });
+        const { error: otpError } = await withTimeout(
+          supabase.auth.signInWithOtp({
+            email: values.email,
+            options: {
+              emailRedirectTo: `${appUrl}/auth/callback?next=${encodeURIComponent(redirectTo ?? "/dashboard")}`,
+            },
+          }),
+          20000,
+          "Request timed out. Check Vercel env vars (real Supabase URL) and Redeploy."
+        );
         if (otpError) throw otpError;
         setMessage("Check your email for the magic link.");
       } else {
@@ -72,18 +97,30 @@ export function LoginForm({ mode, redirectTo }: LoginFormProps) {
           return;
         }
 
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email: values.email,
-          password,
-        });
+        const { error: signInError } = await withTimeout(
+          supabase.auth.signInWithPassword({
+            email: values.email,
+            password,
+          }),
+          20000,
+          "Login timed out. On Vercel: set real Supabase URL + anon key, then Redeploy (required for NEXT_PUBLIC_*)."
+        );
         if (signInError) throw signInError;
 
         const {
           data: { user },
-        } = await supabase.auth.getUser();
+        } = await withTimeout(
+          supabase.auth.getUser(),
+          10000,
+          "Could not verify session after login."
+        );
         if (!user) throw new Error("Sign in failed");
 
-        const role = await getProfileRole(asProfileClient(supabase), user.id);
+        const role = await withTimeout(
+          getProfileRole(asProfileClient(supabase), user.id),
+          10000,
+          "Could not load your profile. Run npm run db:seed or fix role in Supabase."
+        );
 
         if (!role) {
           await supabase.auth.signOut();
