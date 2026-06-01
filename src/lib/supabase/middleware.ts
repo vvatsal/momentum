@@ -56,13 +56,14 @@ export async function updateSession(request: NextRequest) {
       (await getProfileRole(asProfileClient(supabase), user.id)) ?? undefined;
 
     if (isAuthRoute) {
-      const dest =
-        role === "admin"
-          ? "/admin"
-          : role === "student"
-            ? "/dashboard"
-            : "/login";
-      return NextResponse.redirect(new URL(dest, request.url));
+      if (role === "admin") {
+        return NextResponse.redirect(new URL("/admin", request.url));
+      }
+      if (role === "student") {
+        return NextResponse.redirect(new URL("/dashboard", request.url));
+      }
+      // Logged in but no profile/role — stay on login page (avoid redirect loop)
+      return supabaseResponse;
     }
 
     if (pathname.startsWith("/admin") && role !== "admin") {

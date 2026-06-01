@@ -1,15 +1,30 @@
 /**
  * Seed admin + sample students via Supabase Admin API.
- * Run: npm run db:seed (requires .env with service role key)
+ * Run: npm run db:seed (requires .env.local with service role key)
  */
-import "dotenv/config";
+import { config } from "dotenv";
+import { resolve } from "path";
 import { createClient } from "@supabase/supabase-js";
+
+config({ path: resolve(process.cwd(), ".env.local") });
+config({ path: resolve(process.cwd(), ".env") });
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!url || !serviceKey) {
-  console.error("Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in .env");
+  console.error(`
+Missing Supabase credentials.
+
+1. Copy:  cp .env.example .env.local
+2. Edit .env.local and set:
+   - NEXT_PUBLIC_SUPABASE_URL
+   - NEXT_PUBLIC_SUPABASE_ANON_KEY
+   - SUPABASE_SERVICE_ROLE_KEY
+   (from Supabase → Project Settings → API)
+
+3. Run again:  npm run db:seed
+`);
   process.exit(1);
 }
 

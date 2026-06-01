@@ -84,9 +84,19 @@ export function LoginForm({ mode, redirectTo }: LoginFormProps) {
         if (!user) throw new Error("Sign in failed");
 
         const role = await getProfileRole(asProfileClient(supabase), user.id);
+
+        if (!role) {
+          await supabase.auth.signOut();
+          throw new Error(
+            "Your account has no profile yet. Run npm run db:seed locally, or ask an admin to set your role in Supabase."
+          );
+        }
+
         if (mode === "admin" && role !== "admin") {
           await supabase.auth.signOut();
-          throw new Error("This account is not an admin.");
+          throw new Error(
+            "This account is not an admin. Use /login for students, or fix the role in Supabase → profiles."
+          );
         }
         if (mode === "student" && role !== "student") {
           await supabase.auth.signOut();
