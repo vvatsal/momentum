@@ -203,7 +203,7 @@ export function LoginForm({ mode, redirectTo }: LoginFormProps) {
       {mode === "student" && (
         <button
           type="button"
-          className="text-sm text-primary underline-offset-4 hover:underline"
+          className="text-sm font-medium text-cyan-400 hover:text-cyan-300"
           onClick={() => setUseMagicLink((v) => !v)}
         >
           {useMagicLink ? "Use email and password instead" : "Use magic link instead"}
@@ -221,7 +221,7 @@ export function LoginForm({ mode, redirectTo }: LoginFormProps) {
         </p>
       )}
       {message && (
-        <p className="rounded-md bg-primary/10 px-3 py-2 text-sm text-primary">
+        <p className="rounded-lg border border-cyan-500/20 bg-cyan-500/10 px-3 py-2 text-sm text-cyan-300">
           {message}
         </p>
       )}

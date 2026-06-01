@@ -1,8 +1,11 @@
 import Link from "next/link";
+import { Plus, Users } from "lucide-react";
 import { requireProfile } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { countStudents, listTestsForAdmin } from "@/lib/supabase/queries";
 import { AppHeader } from "@/components/layout/app-header";
+import { PageShell } from "@/components/layout/page-shell";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -24,38 +27,46 @@ export default async function AdminDashboardPage() {
   ]);
 
   return (
-    <div className="min-h-dvh">
+    <PageShell noPadding>
       <AppHeader
         title="Admin"
         subtitle={profile.full_name ?? profile.email}
         homeHref="/admin"
       />
-      <div className="mx-auto max-w-lg space-y-4 px-4 py-6 sm:max-w-2xl lg:max-w-4xl">
-        <div className="flex items-center justify-between gap-3">
-          <div className="grid flex-1 grid-cols-2 gap-3">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription>Students</CardDescription>
-                <CardTitle className="text-2xl">{studentCount}</CardTitle>
-              </CardHeader>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription>Tests</CardDescription>
-                <CardTitle className="text-2xl">{tests.length}</CardTitle>
-              </CardHeader>
-            </Card>
-          </div>
+      <div className="mx-auto max-w-lg space-y-5 px-4 py-6 sm:max-w-2xl lg:max-w-4xl">
+        <div className="grid grid-cols-2 gap-3 animate-fade-in">
+          <Card className="card-hover overflow-hidden">
+            <CardHeader className="pb-2">
+              <CardDescription className="flex items-center gap-1.5">
+                <Users className="h-3.5 w-3.5" />
+                Students
+              </CardDescription>
+              <CardTitle className="text-3xl font-extrabold tabular-nums gradient-text">
+                {studentCount}
+              </CardTitle>
+            </CardHeader>
+          </Card>
+          <Card className="card-hover overflow-hidden">
+            <CardHeader className="pb-2">
+              <CardDescription>Tests</CardDescription>
+              <CardTitle className="text-3xl font-extrabold tabular-nums gradient-text">
+                {tests.length}
+              </CardTitle>
+            </CardHeader>
+          </Card>
         </div>
 
-        <Button className="w-full sm:w-auto" asChild>
-          <Link href="/admin/tests/new">Create new test</Link>
+        <Button className="w-full sm:w-auto" size="lg" asChild>
+          <Link href="/admin/tests/new">
+            <Plus className="h-4 w-4" />
+            Create new test
+          </Link>
         </Button>
 
-        <Card>
+        <Card className="animate-slide-up">
           <CardHeader>
             <CardTitle className="text-base">All tests</CardTitle>
-            <CardDescription>Tap a test to edit or view reports</CardDescription>
+            <CardDescription>Tap to edit or view reports</CardDescription>
           </CardHeader>
           <CardContent>
             {tests.length === 0 ? (
@@ -63,15 +74,15 @@ export default async function AdminDashboardPage() {
                 No tests yet. Create your first test above.
               </p>
             ) : (
-              <ul className="divide-y">
+              <ul className="divide-y divide-white/[0.06]">
                 {tests.map((t) => (
                   <li
                     key={t.id}
-                    className="flex items-center justify-between gap-2 py-3 text-sm"
+                    className="flex items-center justify-between gap-2 py-3.5 first:pt-0 last:pb-0"
                   >
                     <Link
                       href={`/admin/tests/${t.id}`}
-                      className="min-w-0 flex-1 font-medium hover:underline"
+                      className="min-w-0 flex-1 font-medium transition-colors hover:text-cyan-400"
                     >
                       {t.title}
                     </Link>
@@ -80,14 +91,22 @@ export default async function AdminDashboardPage() {
                         t.status === "archived") && (
                         <Link
                           href={`/admin/tests/${t.id}/reports`}
-                          className="text-xs text-primary underline"
+                          className="text-xs font-medium text-cyan-400/80 hover:text-cyan-300"
                         >
                           Reports
                         </Link>
                       )}
-                      <span className="rounded-full bg-muted px-2 py-0.5 text-xs capitalize">
+                      <Badge
+                        variant={
+                          t.status === "published"
+                            ? "success"
+                            : t.status === "draft"
+                              ? "muted"
+                              : "secondary"
+                        }
+                      >
                         {t.status}
-                      </span>
+                      </Badge>
                     </span>
                   </li>
                 ))}
@@ -96,6 +115,6 @@ export default async function AdminDashboardPage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </PageShell>
   );
 }

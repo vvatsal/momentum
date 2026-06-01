@@ -30,17 +30,18 @@ export function QuestionPalette({
             type="button"
             onClick={() => onSelect(item.questionId)}
             className={cn(
-              "flex h-10 items-center justify-center rounded-md text-sm font-medium transition-colors",
-              isCurrent && "ring-2 ring-palette-current ring-offset-2",
+              "tap-scale flex h-10 items-center justify-center rounded-xl text-sm font-bold transition-[transform,box-shadow,background] duration-150",
+              isCurrent &&
+                "ring-2 ring-cyan-400 ring-offset-2 ring-offset-background shadow-glow-sm scale-105",
               item.status === "answered" &&
                 !isCurrent &&
-                "bg-palette-answered text-white",
+                "bg-palette-answered text-white shadow-md shadow-emerald-500/20",
               item.status === "skipped" &&
                 !isCurrent &&
                 "bg-palette-skipped text-white",
               item.status === "unanswered" &&
                 !isCurrent &&
-                "bg-palette-unanswered/30 text-foreground",
+                "border border-white/10 bg-palette-unanswered/80 text-muted-foreground hover:border-white/20",
               isCurrent &&
                 item.status === "answered" &&
                 "bg-palette-answered text-white",
@@ -49,7 +50,7 @@ export function QuestionPalette({
                 "bg-palette-skipped text-white",
               isCurrent &&
                 item.status === "unanswered" &&
-                "bg-palette-current text-white"
+                "bg-gradient-to-br from-cyan-500 to-sky-500 text-white"
             )}
             aria-label={`Question ${item.index + 1}, ${item.status}`}
             aria-current={isCurrent ? "true" : undefined}

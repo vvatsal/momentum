@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireProfile } from "@/lib/auth/session";
 import { AppHeader } from "@/components/layout/app-header";
+import { PageShell } from "@/components/layout/page-shell";
 import { CreateTestForm } from "@/components/admin/create-test-form";
 import {
   Card,
@@ -17,7 +18,7 @@ export default async function NewTestPage() {
   await requireProfile("admin");
 
   return (
-    <div className="min-h-dvh">
+    <PageShell noPadding>
       <AppHeader title="New test" homeHref="/admin" />
       <div className="mx-auto max-w-lg space-y-4 px-4 py-6 sm:max-w-xl">
         <Button variant="ghost" size="sm" asChild>
@@ -35,6 +36,6 @@ export default async function NewTestPage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </PageShell>
   );
 }

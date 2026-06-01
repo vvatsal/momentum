@@ -9,6 +9,7 @@ import {
   listEmailLogForTest,
 } from "@/lib/supabase/queries";
 import { AppHeader } from "@/components/layout/app-header";
+import { PageShell } from "@/components/layout/page-shell";
 import {
   Card,
   CardContent,
@@ -39,7 +40,7 @@ export default async function TestReportsPage({
   const submitted = attempts.filter((a) => a.status === "submitted");
 
   return (
-    <div className="min-h-dvh">
+    <PageShell noPadding>
       <AppHeader title={`Reports: ${test.title}`} homeHref="/admin" />
       <div className="mx-auto max-w-lg space-y-4 px-4 py-6 sm:max-w-2xl lg:max-w-4xl">
         <div className="flex flex-wrap items-center gap-2">
@@ -160,6 +161,6 @@ export default async function TestReportsPage({
           </Card>
         )}
       </div>
-    </div>
+    </PageShell>
   );
 }

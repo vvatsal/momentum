@@ -338,25 +338,27 @@ export function TestTakingClient({ initial }: Props) {
   }
 
   return (
-    <div className="flex min-h-dvh flex-col pb-24">
-      <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
-        <div className="mx-auto max-w-lg space-y-2 px-4 py-3">
+    <div className="mesh-bg flex min-h-dvh flex-col pb-28">
+      <header className="sticky top-0 z-40 border-b border-white/[0.06] glass-strong">
+        <div className="mx-auto max-w-lg space-y-2.5 px-4 py-3">
           <div className="flex items-center justify-between gap-2">
-            <h1 className="truncate text-sm font-semibold">{initial.test.title}</h1>
-            <span className="shrink-0 text-xs text-muted-foreground">
+            <h1 className="truncate text-sm font-bold tracking-tight">
+              {initial.test.title}
+            </h1>
+            <span className="shrink-0 text-xs font-medium">
               {saveState === "saving" && (
-                <span className="inline-flex items-center gap-1">
-                  <Loader2 className="h-3 w-3 animate-spin" /> Saving
+                <span className="inline-flex items-center gap-1 text-muted-foreground">
+                  <Loader2 className="h-3 w-3 animate-spin text-cyan-400" /> Saving
                 </span>
               )}
               {saveState === "saved" && (
-                <span className="inline-flex items-center gap-1 text-primary">
+                <span className="inline-flex items-center gap-1 text-cyan-400">
                   <Check className="h-3 w-3" /> Saved
                 </span>
               )}
             </span>
           </div>
-          <Progress value={progressPct} className="h-1.5" />
+          <Progress value={progressPct} className="h-2" />
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>
               Q{currentIndex + 1}/{questions.length}
@@ -373,29 +375,31 @@ export function TestTakingClient({ initial }: Props) {
 
       <main className="mx-auto w-full max-w-lg flex-1 space-y-4 px-4 py-4">
         {error && (
-          <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-red-300">
             {error}
           </p>
         )}
 
-        <div className="rounded-xl border bg-card p-4 shadow-sm">
-          <p className="mb-1 text-xs font-medium text-muted-foreground">
+        <div className="glass animate-slide-up rounded-2xl p-5">
+          <p className="mb-2 inline-flex rounded-full bg-cyan-500/10 px-2.5 py-0.5 text-xs font-semibold text-cyan-300 ring-1 ring-cyan-500/20">
             {currentQuestion.marks} mark
             {Number(currentQuestion.marks) !== 1 ? "s" : ""}
           </p>
-          <p className="text-base leading-relaxed">{currentQuestion.question_text}</p>
+          <p className="text-base font-medium leading-relaxed">
+            {currentQuestion.question_text}
+          </p>
 
           {currentQuestion.type === "mcq" && currentQuestion.options && (
-            <div className="mt-4 space-y-2">
+            <div className="mt-5 space-y-2">
               {currentQuestion.options.map((opt) => (
                 <button
                   key={opt}
                   type="button"
                   onClick={() => setMcqSelection(opt)}
-                  className={`w-full rounded-lg border px-3 py-3 text-left text-sm transition-colors ${
+                  className={`tap-scale w-full rounded-xl border px-4 py-3.5 text-left text-sm font-medium transition-[border-color,background,box-shadow] duration-150 ${
                     mcqSelection === opt
-                      ? "border-primary bg-primary/10"
-                      : "hover:bg-muted"
+                      ? "border-cyan-500/50 bg-cyan-500/15 shadow-glow-sm ring-1 ring-cyan-500/30"
+                      : "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/[0.08]"
                   }`}
                 >
                   {opt}
@@ -446,7 +450,7 @@ export function TestTakingClient({ initial }: Props) {
         </div>
       </main>
 
-      <footer className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background/95 p-4 backdrop-blur">
+      <footer className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/[0.06] glass-strong p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <div className="mx-auto flex max-w-lg flex-col gap-2">
           <div className="grid grid-cols-2 gap-2">
             <Button type="button" variant="outline" onClick={handleSkip}>

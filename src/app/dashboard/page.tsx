@@ -1,7 +1,10 @@
 import Link from "next/link";
+import { Clock, PlayCircle } from "lucide-react";
 import { requireProfile } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { AppHeader } from "@/components/layout/app-header";
+import { PageShell } from "@/components/layout/page-shell";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -46,7 +49,7 @@ export default async function StudentDashboardPage() {
   const attemptByTest = new Map(attempts.map((a) => [a.test_id, a]));
 
   return (
-    <div className="min-h-dvh">
+    <PageShell noPadding>
       <AppHeader
         title="My tests"
         subtitle={profile.full_name ?? profile.email}
@@ -54,37 +57,58 @@ export default async function StudentDashboardPage() {
       />
       <div className="mx-auto max-w-lg space-y-4 px-4 py-6 sm:max-w-2xl">
         {tests.length === 0 ? (
-          <Card>
-            <CardContent className="py-8 text-center text-sm text-muted-foreground">
-              No tests available yet. Check back after your teacher publishes one.
+          <Card className="animate-fade-in">
+            <CardContent className="py-12 text-center">
+              <p className="text-sm text-muted-foreground">
+                No tests available yet. Check back after your teacher publishes
+                one.
+              </p>
             </CardContent>
           </Card>
         ) : (
-          tests.map((test) => {
+          tests.map((test, i) => {
             const attempt = attemptByTest.get(test.id);
+            const status = attempt?.status;
             return (
-              <Card key={test.id}>
-                <CardHeader>
-                  <CardTitle className="text-base">{test.title}</CardTitle>
+              <Card
+                key={test.id}
+                className={`card-hover animate-slide-up`}
+                style={{ animationDelay: `${i * 0.05}s` }}
+              >
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <CardTitle className="text-base leading-snug">
+                      {test.title}
+                    </CardTitle>
+                    {status === "in_progress" && (
+                      <Badge variant="warning">In progress</Badge>
+                    )}
+                    {status === "submitted" && (
+                      <Badge variant="success">Done</Badge>
+                    )}
+                    {!status && <Badge variant="muted">New</Badge>}
+                  </div>
                   {test.description && (
-                    <CardDescription>{test.description}</CardDescription>
+                    <CardDescription className="line-clamp-2">
+                      {test.description}
+                    </CardDescription>
                   )}
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <p className="text-xs text-muted-foreground">
+                <CardContent className="space-y-4">
+                  <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Clock className="h-3.5 w-3.5" />
                     {test.duration_minutes
                       ? `${test.duration_minutes} min suggested`
                       : "No time limit"}
-                    {attempt?.status === "in_progress" && " · In progress"}
-                    {attempt?.status === "submitted" && " · Completed"}
                   </p>
-                  <Button asChild className="w-full" size="sm">
+                  <Button asChild className="w-full group" size="lg">
                     <Link href={`/tests/${test.id}`}>
-                      {attempt?.status === "submitted"
+                      <PlayCircle className="h-4 w-4" />
+                      {status === "submitted"
                         ? "View results"
-                        : attempt?.status === "in_progress"
-                          ? "Resume"
-                          : "Open test"}
+                        : status === "in_progress"
+                          ? "Resume test"
+                          : "Start test"}
                     </Link>
                   </Button>
                 </CardContent>
@@ -93,6 +117,6 @@ export default async function StudentDashboardPage() {
           })
         )}
       </div>
-    </div>
+    </PageShell>
   );
 }

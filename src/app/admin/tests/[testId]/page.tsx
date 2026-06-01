@@ -7,6 +7,7 @@ import {
   listQuestionsForTest,
 } from "@/lib/supabase/queries";
 import { AppHeader } from "@/components/layout/app-header";
+import { PageShell } from "@/components/layout/page-shell";
 import { TestMetadataForm } from "@/components/admin/test-metadata-form";
 import { QuestionEditor } from "@/components/admin/question-editor";
 import { TestPublishPanel } from "@/components/admin/test-publish-panel";
@@ -35,7 +36,7 @@ export default async function EditTestPage({
   const questions = await listQuestionsForTest(supabase, params.testId);
 
   return (
-    <div className="min-h-dvh">
+    <PageShell noPadding>
       <AppHeader title={test.title} homeHref="/admin" />
       <div className="mx-auto max-w-lg space-y-4 px-4 py-6 sm:max-w-2xl lg:max-w-3xl">
         <div className="flex flex-wrap items-center gap-2">
@@ -89,6 +90,6 @@ export default async function EditTestPage({
           </CardContent>
         </Card>
       </div>
-    </div>
+    </PageShell>
   );
 }

@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { BookOpen, ListChecks } from "lucide-react";
 import { notFound } from "next/navigation";
 import { getAttemptForTest, getTestForStudent } from "@/app/actions/attempt";
 import { startTestAction } from "@/app/tests/[testId]/actions";
 import { requireProfile } from "@/lib/auth/session";
 import { AppHeader } from "@/components/layout/app-header";
+import { PageShell } from "@/components/layout/page-shell";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -28,46 +30,54 @@ export default async function TestInstructionsPage({
   const attempt = await getAttemptForTest(params.testId);
 
   return (
-    <div className="min-h-dvh">
+    <PageShell noPadding>
       <AppHeader title="Test" homeHref="/dashboard" />
-      <div className="mx-auto max-w-lg space-y-4 px-4 py-6">
-        <Card>
+      <div className="mx-auto max-w-lg space-y-4 px-4 py-6 animate-slide-up">
+        <Card className="glass-strong">
           <CardHeader>
-            <CardTitle>{test.title}</CardTitle>
+            <CardTitle className="text-xl">{test.title}</CardTitle>
             {test.description && (
               <CardDescription>{test.description}</CardDescription>
             )}
           </CardHeader>
-          <CardContent className="space-y-4 text-sm">
+          <CardContent className="space-y-5 text-sm">
             {test.instructions && (
-              <div className="rounded-lg bg-muted p-3 whitespace-pre-wrap">
+              <div className="rounded-xl border border-white/[0.06] bg-white/5 p-4 whitespace-pre-wrap leading-relaxed">
                 {test.instructions}
               </div>
             )}
-            <ul className="list-inside list-disc space-y-1 text-muted-foreground">
-              <li>One question at a time — use the grid to jump</li>
-              <li>Answers auto-save when you move between questions</li>
-              <li>You can exit and resume later until final submit</li>
-              {test.duration_minutes && (
-                <li>Suggested time: {test.duration_minutes} minutes</li>
-              )}
+            <ul className="space-y-2.5 text-muted-foreground">
+              <li className="flex gap-2">
+                <ListChecks className="mt-0.5 h-4 w-4 shrink-0 text-cyan-400" />
+                One question at a time — jump via the palette
+              </li>
+              <li className="flex gap-2">
+                <BookOpen className="mt-0.5 h-4 w-4 shrink-0 text-cyan-400" />
+                Answers auto-save when you move between questions
+              </li>
+              <li className="flex gap-2 pl-6 text-xs">
+                Exit anytime and resume until final submit
+                {test.duration_minutes && (
+                  <> · ~{test.duration_minutes} min suggested</>
+                )}
+              </li>
             </ul>
 
             {attempt?.status === "submitted" ? (
-              <Button asChild className="w-full">
+              <Button asChild className="w-full" size="lg">
                 <Link href={`/tests/${params.testId}/summary`}>
                   View results
                 </Link>
               </Button>
             ) : attempt?.status === "in_progress" ? (
               <form action={startTestAction.bind(null, params.testId)}>
-                <Button type="submit" className="w-full">
+                <Button type="submit" className="w-full" size="lg">
                   Resume test
                 </Button>
               </form>
             ) : (
               <form action={startTestAction.bind(null, params.testId)}>
-                <Button type="submit" className="w-full">
+                <Button type="submit" className="w-full" size="lg">
                   Start test
                 </Button>
               </form>
@@ -79,6 +89,6 @@ export default async function TestInstructionsPage({
           </CardContent>
         </Card>
       </div>
-    </div>
+    </PageShell>
   );
 }
