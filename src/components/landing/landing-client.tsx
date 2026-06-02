@@ -89,32 +89,19 @@ export function LandingClient() {
       </motion.div>
 
       <motion.div
-        className="mt-12 grid gap-4 sm:grid-cols-2"
-        variants={reduce ? undefined : staggerContainer}
-        initial="hidden"
-        animate="show"
+        className="mt-12 flex justify-center"
+        variants={fadeUp}
       >
-        <RoleCard
-          href="/login"
-          icon={GraduationCap}
-          title="I'm a student"
-          description="Sign in with magic link or password. Take tests from your dashboard."
-          cta="Enter student portal"
-          gradient="from-cyan-500/20 to-sky-600/5"
-          accent="cyan"
-          delay={0}
-        />
-        <RoleCard
-          href="/admin/login"
-          icon={Shield}
-          title="I'm an admin"
-          description="Create papers, publish to class, download CSV reports."
-          cta="Open admin console"
-          gradient="from-violet-500/20 to-fuchsia-600/5"
-          accent="violet"
-          outline
-          delay={0.05}
-        />
+        <Button
+          asChild
+          size="lg"
+          className="shine-btn h-14 px-10 text-lg font-bold"
+        >
+          <Link href="/login">
+            Get Started
+            <ArrowRight className="ml-2 h-5 w-5" />
+          </Link>
+        </Button>
       </motion.div>
     </main>
   );
@@ -152,11 +139,10 @@ function RoleCard({
     >
       <div className="flex h-full flex-col rounded-2xl bg-[hsl(228,32%,8%)]/95 p-6 sm:p-7">
         <div
-          className={`mb-4 flex h-12 w-12 items-center justify-center rounded-2xl ${
-            accent === "cyan"
+          className={`mb-4 flex h-12 w-12 items-center justify-center rounded-2xl ${accent === "cyan"
               ? "bg-cyan-500/20 text-cyan-300"
               : "bg-violet-500/20 text-violet-300"
-          }`}
+            }`}
         >
           <Icon className="h-6 w-6" />
         </div>
