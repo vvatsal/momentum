@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
-import { Plus } from "lucide-react";
+import { Plus, FileText, Copy, Check } from "lucide-react";
 import { fadeUp, listItem, staggerContainer } from "@/lib/motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useState } from "react";
 
 type TestItem = {
   id: string;
@@ -66,6 +67,35 @@ export function AdminDashboardClient({
             </div>
           </Link>
         </motion.div>
+      </motion.div>
+
+      <motion.div
+        variants={fadeUp}
+        initial="hidden"
+        animate="show"
+        className="bento-card mt-6 p-6"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <FileText className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-bold tracking-tight">Bulk Upload Format</h2>
+          </div>
+          <CSVCopyButton />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Headers</p>
+            <code className="block rounded-lg bg-white/5 p-3 text-[10px] font-mono text-primary">
+              type,question,marks,options,correct_answer,explanation,tolerance
+            </code>
+          </div>
+          <div className="space-y-2">
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Sample MCQ</p>
+            <code className="block rounded-lg bg-white/5 p-3 text-[10px] font-mono text-muted-foreground">
+              mcq,"What is 2+2?",1,"4|5|6",4,"Basic math",
+            </code>
+          </div>
+        </div>
       </motion.div>
 
       <motion.div
@@ -144,5 +174,39 @@ export function AdminDashboardClient({
         )}
       </motion.div>
     </>
+  );
+}
+
+function CSVCopyButton() {
+  const [copied, setCopied] = useState(false);
+  const sampleCsv = `type,question,marks,options,correct_answer,explanation,tolerance
+mcq,"What is 2+2?",1,"4|5|6",4,"Basic math",
+numeric,"Value of pi?",1,,3.14,"Constant",0.01`;
+
+  const copy = () => {
+    navigator.clipboard.writeText(sampleCsv);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      className="gap-2 h-8 text-xs font-bold border-white/10 hover:bg-white/5"
+      onClick={copy}
+    >
+      {copied ? (
+        <>
+          <Check className="h-3.5 w-3.5 text-green-500" />
+          Copied!
+        </>
+      ) : (
+        <>
+          <Copy className="h-3.5 w-3.5" />
+          Copy Sample CSV
+        </>
+      )}
+    </Button>
   );
 }
