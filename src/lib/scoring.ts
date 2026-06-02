@@ -15,7 +15,7 @@ export function scoreResponse(
 ): { isCorrect: boolean; awardedMarks: number } {
   const marks = Number(question.marks);
 
-  if (question.type === "mcq") {
+  if (question.type === "mcq" || question.type === "msq") {
     const correct = question.correct_answer as McqCorrectAnswer;
     const correctOptions = correct.options || [];
 

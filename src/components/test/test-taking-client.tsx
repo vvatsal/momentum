@@ -441,36 +441,54 @@ export function TestTakingClient({ initial }: Props) {
               {currentQuestion.question_text}
             </h2>
 
-            {currentQuestion.type === "mcq" && currentQuestion.options && (
+            {(currentQuestion.type === "mcq" || currentQuestion.type === "msq") && currentQuestion.options && (
               <motion.div
                 className="mt-6 space-y-2.5"
                 variants={reduce ? undefined : staggerContainer}
                 initial="hidden"
                 animate="show"
               >
-                {currentQuestion.options.map((opt, i) => (
+                {currentQuestion.type === "mcq" && (
+                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest mb-3">Single correct answer</p>
+                )}
+                {currentQuestion.type === "msq" && (
+                  <p className="text-xs text-primary font-bold uppercase tracking-widest mb-3">Select all correct answers</p>
+                )}
+                {currentQuestion.options.map((opt) => (
                   <motion.button
                     key={opt}
                     type="button"
                     variants={reduce ? undefined : fadeUp}
                     onClick={() => {
-                      setMcqSelections((prev) =>
-                        prev.includes(opt)
-                          ? prev.filter((o) => o !== opt)
-                          : [...prev, opt]
-                      );
+                      if (currentQuestion.type === "mcq") {
+                        setMcqSelections([opt]);
+                      } else {
+                        setMcqSelections((prev) =>
+                          prev.includes(opt)
+                            ? prev.filter((o) => o !== opt)
+                            : [...prev, opt]
+                        );
+                      }
                     }}
                     whileTap={reduce ? undefined : { scale: 0.98 }}
-                    className={`option-chip ${mcqSelections.includes(opt) ? "option-chip-selected" : ""
-                      }`}
+                    className={`option-chip ${mcqSelections.includes(opt) ? "option-chip-selected" : ""}`}
                   >
                     <div className="flex items-center gap-3 w-full">
-                      <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors ${mcqSelections.includes(opt)
-                          ? "bg-primary border-primary text-primary-foreground"
-                          : "border-white/20 bg-white/5"
-                        }`}>
-                        {mcqSelections.includes(opt) && <Check className="h-3.5 w-3.5" />}
-                      </div>
+                      {currentQuestion.type === "mcq" ? (
+                        <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-colors ${mcqSelections.includes(opt)
+                            ? "bg-primary border-primary"
+                            : "border-white/20 bg-white/5"
+                          }`}>
+                          {mcqSelections.includes(opt) && <div className="h-2.5 w-2.5 rounded-full bg-primary-foreground" />}
+                        </div>
+                      ) : (
+                        <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors ${mcqSelections.includes(opt)
+                            ? "bg-primary border-primary text-primary-foreground"
+                            : "border-white/20 bg-white/5"
+                          }`}>
+                          {mcqSelections.includes(opt) && <Check className="h-3.5 w-3.5" />}
+                        </div>
+                      )}
                       <span className="flex-1 text-left">{opt}</span>
                     </div>
                   </motion.button>

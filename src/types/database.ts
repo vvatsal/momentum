@@ -1,5 +1,5 @@
 export type UserRole = "admin" | "student";
-export type QuestionType = "mcq" | "numeric";
+export type QuestionType = "mcq" | "msq" | "numeric";
 export type TestStatus = "draft" | "published" | "archived";
 export type AttemptStatus = "in_progress" | "submitted";
 export type ResponseStatus = "unanswered" | "answered" | "skipped";

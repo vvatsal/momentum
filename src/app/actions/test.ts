@@ -10,6 +10,7 @@ import {
   createTestSchema,
   deleteQuestionSchema,
   mcqQuestionSchema,
+  msqQuestionSchema,
   numericQuestionSchema,
   publishTestSchema,
   testMetadataSchema,
@@ -122,6 +123,53 @@ export async function saveMcqQuestion(input: unknown): Promise<ActionResult> {
   }
 
   const d = parsed.data;
+  if (!d.options.includes(d.correct_option)) {
+    return { ok: false, error: "Correct option must be one of the choices" };
+  }
+
+  const locked = await isTestLocked(supabase, d.testId);
+  if (locked) return { ok: false, error: "Test is locked — cannot edit questions" };
+
+  const correct_answer: McqCorrectAnswer = { options: [d.correct_option] };
+  const row = {
+    test_id: d.testId,
+    type: "mcq" as const,
+    question_text: d.question_text,
+    marks: d.marks,
+    options: d.options,
+    correct_answer,
+    explanation: d.explanation ?? null,
+    numeric_tolerance: null,
+  };
+
+  if (d.questionId) {
+    const { error } = await supabase
+      .from("questions")
+      .update(row)
+      .eq("id", d.questionId)
+      .eq("test_id", d.testId);
+    if (error) return { ok: false, error: error.message };
+  } else {
+    const nextIndex = await nextQuestionIndex(supabase, d.testId);
+    const { error } = await supabase.from("questions").insert({
+      ...row,
+      order_index: nextIndex,
+    });
+    if (error) return { ok: false, error: error.message };
+  }
+
+  revalidateTest(d.testId);
+  return { ok: true };
+}
+
+export async function saveMsqQuestion(input: unknown): Promise<ActionResult> {
+  const { supabase } = await requireAdmin();
+  const parsed = msqQuestionSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: "Invalid MSQ question" };
+  }
+
+  const d = parsed.data;
   if (!d.correct_options.every((opt) => d.options.includes(opt))) {
     return { ok: false, error: "All correct options must be in the choices list" };
   }
@@ -132,7 +180,7 @@ export async function saveMcqQuestion(input: unknown): Promise<ActionResult> {
   const correct_answer: McqCorrectAnswer = { options: d.correct_options };
   const row = {
     test_id: d.testId,
-    type: "mcq" as const,
+    type: "msq" as const,
     question_text: d.question_text,
     marks: d.marks,
     options: d.options,
@@ -228,6 +276,13 @@ export async function saveBulkQuestions(input: unknown): Promise<ActionResult> {
     };
 
     if (q.type === "mcq") {
+      return {
+        ...base,
+        options: q.options,
+        correct_answer: { options: [q.correct_option] } as McqCorrectAnswer,
+        numeric_tolerance: null,
+      };
+    } else if (q.type === "msq") {
       return {
         ...base,
         options: q.options,

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   deleteQuestion,
   saveMcqQuestion,
+  saveMsqQuestion,
   saveNumericQuestion,
 } from "@/app/actions/test";
 import { Button } from "@/components/ui/button";
@@ -26,7 +27,7 @@ type Props = {
 
 export function QuestionEditor({ testId, questions, isLocked }: Props) {
   const router = useRouter();
-  const [adding, setAdding] = useState<"mcq" | "numeric" | null>(null);
+  const [adding, setAdding] = useState<"mcq" | "msq" | "numeric" | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   if (isLocked) {
@@ -95,10 +96,14 @@ export function QuestionEditor({ testId, questions, isLocked }: Props) {
       {adding === "mcq" && (
         <McqForm
           testId={testId}
-          onDone={() => {
-            setAdding(null);
-            router.refresh();
-          }}
+          onDone={() => { setAdding(null); router.refresh(); }}
+          onCancel={() => setAdding(null)}
+        />
+      )}
+      {adding === "msq" && (
+        <MsqForm
+          testId={testId}
+          onDone={() => { setAdding(null); router.refresh(); }}
           onCancel={() => setAdding(null)}
         />
       )}
@@ -116,7 +121,10 @@ export function QuestionEditor({ testId, questions, isLocked }: Props) {
       {!adding && (
         <div className="flex flex-wrap items-center gap-2">
           <Button type="button" variant="outline" onClick={() => setAdding("mcq")}>
-            + MCQ
+            + MCQ (Single)
+          </Button>
+          <Button type="button" variant="outline" onClick={() => setAdding("msq")}>
+            + MSQ (Multi)
           </Button>
           <Button
             type="button"
@@ -149,6 +157,16 @@ function QuestionForm({
   if (question.type === "mcq") {
     return (
       <McqForm
+        testId={testId}
+        question={question}
+        onDone={onDone}
+        onCancel={onCancel}
+      />
+    );
+  }
+  if (question.type === "msq") {
+    return (
+      <MsqForm
         testId={testId}
         question={question}
         onDone={onDone}
@@ -325,6 +343,128 @@ function McqForm({
         <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
           Cancel
         </Button>
+      </div>
+    </form>
+  );
+}
+
+function MsqForm({
+  testId,
+  question,
+  onDone,
+  onCancel,
+}: {
+  testId: string;
+  question?: Question;
+  onDone: () => void;
+  onCancel: () => void;
+}) {
+  const correct = question?.correct_answer as McqCorrectAnswer | undefined;
+  const initialOpts = (question?.options as string[] | null) ?? ["", "", "", ""];
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+  const [opts, setOpts] = useState<string[]>(
+    initialOpts.length >= 2 ? initialOpts : ["", "", "", ""]
+  );
+  const [correctOptions, setCorrectOptions] = useState<string[]>(
+    correct?.options ?? []
+  );
+
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setPending(true);
+    setError(null);
+    const fd = new FormData(e.currentTarget);
+    const filtered = opts.map((o) => o.trim()).filter(Boolean);
+    const filteredCorrect = correctOptions.map((o) => o.trim()).filter((o) => filtered.includes(o));
+
+    if (filteredCorrect.length < 2) {
+      setError("Select at least 2 correct options");
+      setPending(false);
+      return;
+    }
+
+    const result = await saveMsqQuestion({
+      testId,
+      questionId: question?.id,
+      question_text: fd.get("question_text"),
+      marks: fd.get("marks"),
+      options: filtered,
+      correct_options: filteredCorrect,
+      explanation: (fd.get("explanation") as string) || null,
+    });
+    setPending(false);
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+    onDone();
+  }
+
+  return (
+    <form onSubmit={onSubmit} className="space-y-3">
+      <div className="space-y-2">
+        <Label>Question <span className="text-xs text-primary font-bold">(Multiple Correct)</span></Label>
+        <textarea
+          name="question_text"
+          required
+          rows={2}
+          defaultValue={question?.question_text ?? ""}
+          className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+        />
+      </div>
+      <div className="space-y-2">
+        <Label>Marks</Label>
+        <Input
+          name="marks"
+          type="number"
+          step="0.5"
+          min={0.5}
+          defaultValue={question?.marks ?? 2}
+          required
+        />
+      </div>
+      <div className="space-y-2">
+        <Label>Options <span className="text-xs text-muted-foreground">(check all correct ones)</span></Label>
+        {opts.map((opt, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={correctOptions.includes(opt) && opt !== ""}
+              onChange={(e) => {
+                if (e.target.checked) {
+                  setCorrectOptions([...correctOptions, opt]);
+                } else {
+                  setCorrectOptions(correctOptions.filter((o) => o !== opt));
+                }
+              }}
+              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+            />
+            <Input
+              value={opt}
+              onChange={(e) => {
+                const next = [...opts];
+                const oldVal = next[i];
+                next[i] = e.target.value;
+                setOpts(next);
+                if (correctOptions.includes(oldVal)) {
+                  setCorrectOptions(correctOptions.map((o: string) => o === oldVal ? e.target.value : o));
+                }
+              }}
+              placeholder={`Option ${i + 1}`}
+            />
+          </div>
+        ))}
+        {opts.length < 8 && (
+          <Button type="button" variant="ghost" size="sm" onClick={() => setOpts([...opts, ""])}>
+            + Option
+          </Button>
+        )}
+      </div>
+      {error && <p className="text-sm text-destructive">{error}</p>}
+      <div className="flex gap-2">
+        <Button type="submit" size="sm" disabled={pending}>Save</Button>
+        <Button type="button" size="sm" variant="ghost" onClick={onCancel}>Cancel</Button>
       </div>
     </form>
   );
