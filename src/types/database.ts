@@ -61,7 +61,7 @@ export interface Question {
 }
 
 export interface McqCorrectAnswer {
-  option: string;
+  options: string[];
 }
 
 export interface NumericCorrectAnswer {
@@ -89,6 +89,7 @@ export interface Response {
   attempt_id: string;
   question_id: string;
   selected_option: string | null;
+  selected_options: string[] | null;
   numeric_answer: number | null;
   status: ResponseStatus;
   time_spent_seconds: number;

@@ -34,7 +34,7 @@ export const mcqQuestionSchema = z.object({
     .array(z.string().min(1))
     .min(2, "At least two options")
     .max(8),
-  correct_option: z.string().min(1, "Select the correct option"),
+  correct_options: z.array(z.string().min(1)).min(1, "Select at least one correct option"),
   explanation: z.string().max(2000).optional().nullable(),
 });
 
@@ -74,7 +74,7 @@ export const bulkQuestionsSchema = z.object({
         question_text: z.string().min(1),
         marks: z.coerce.number().min(0.5).max(100),
         options: z.array(z.string().min(1)).min(2).max(8),
-        correct_option: z.string().min(1),
+        correct_options: z.array(z.string().min(1)).min(1),
         explanation: z.string().optional().nullable(),
       }),
       z.object({

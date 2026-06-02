@@ -17,8 +17,27 @@ export function scoreResponse(
 
   if (question.type === "mcq") {
     const correct = question.correct_answer as McqCorrectAnswer;
+    const correctOptions = correct.options || [];
+
+    // Handle both single string (legacy) and array (new) for selectedOption
+    let selected: string[] = [];
+    if (selectedOption) {
+      try {
+        // Try parsing as JSON array
+        const parsed = JSON.parse(selectedOption);
+        if (Array.isArray(parsed)) selected = parsed;
+        else selected = [selectedOption];
+      } catch {
+        // Fallback to single string
+        selected = [selectedOption];
+      }
+    }
+
     const isCorrect =
-      !!selectedOption && selectedOption === correct.option;
+      selected.length === correctOptions.length &&
+      selected.every((opt) => correctOptions.includes(opt)) &&
+      correctOptions.every((opt) => selected.includes(opt));
+
     return { isCorrect, awardedMarks: isCorrect ? marks : 0 };
   }
 

@@ -216,6 +216,9 @@ function McqForm({
   const [opts, setOpts] = useState<string[]>(
     options.length >= 2 ? options : ["", "", "", ""]
   );
+  const [correctOptions, setCorrectOptions] = useState<string[]>(
+    correct?.options ?? []
+  );
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -223,13 +226,21 @@ function McqForm({
     setError(null);
     const fd = new FormData(e.currentTarget);
     const filtered = opts.map((o) => o.trim()).filter(Boolean);
+    const filteredCorrect = correctOptions.map(o => o.trim()).filter(o => filtered.includes(o));
+
+    if (filteredCorrect.length === 0) {
+      setError("Select at least one correct option");
+      setPending(false);
+      return;
+    }
+
     const result = await saveMcqQuestion({
       testId,
       questionId: question?.id,
       question_text: fd.get("question_text"),
       marks: fd.get("marks"),
       options: filtered,
-      correct_option: fd.get("correct_option"),
+      correct_options: filteredCorrect,
       explanation: (fd.get("explanation") as string) || null,
     });
     setPending(false);
@@ -264,18 +275,36 @@ function McqForm({
         />
       </div>
       <div className="space-y-2">
-        <Label>Options</Label>
+        <Label>Options & Correct Answers</Label>
         {opts.map((opt, i) => (
-          <Input
-            key={i}
-            value={opt}
-            onChange={(e) => {
-              const next = [...opts];
-              next[i] = e.target.value;
-              setOpts(next);
-            }}
-            placeholder={`Option ${i + 1}`}
-          />
+          <div key={i} className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={correctOptions.includes(opt) && opt !== ""}
+              onChange={(e) => {
+                if (e.target.checked) {
+                  setCorrectOptions([...correctOptions, opt]);
+                } else {
+                  setCorrectOptions(correctOptions.filter((o) => o !== opt));
+                }
+              }}
+              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+            />
+            <Input
+              value={opt}
+              onChange={(e) => {
+                const next = [...opts];
+                const oldVal = next[i];
+                next[i] = e.target.value;
+                setOpts(next);
+                // Update correct options if the text changed
+                if (correctOptions.includes(oldVal)) {
+                  setCorrectOptions(correctOptions.map(o => o === oldVal ? e.target.value : o));
+                }
+              }}
+              placeholder={`Option ${i + 1}`}
+            />
+          </div>
         ))}
         {opts.length < 8 && (
           <Button
@@ -287,16 +316,6 @@ function McqForm({
             + Option
           </Button>
         )}
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="correct_option">Correct option (exact text)</Label>
-        <Input
-          id="correct_option"
-          name="correct_option"
-          required
-          defaultValue={correct?.option ?? ""}
-          placeholder="Must match one option exactly"
-        />
       </div>
       {error && <p className="text-sm text-destructive">{error}</p>}
       <div className="flex gap-2">

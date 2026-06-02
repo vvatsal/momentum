@@ -55,7 +55,7 @@ export function TestTakingClient({ initial }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [submitOpen, setSubmitOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [mcqSelection, setMcqSelection] = useState<string | null>(null);
+  const [mcqSelections, setMcqSelections] = useState<string[]>([]);
   const [numericInput, setNumericInput] = useState("");
   const [numericError, setNumericError] = useState<string | null>(null);
 
@@ -98,13 +98,23 @@ export function TestTakingClient({ initial }: Props) {
       const q = questions.find((x) => x.id === questionId);
       if (!r || !q) return;
       if (q.type === "mcq") {
-        setMcqSelection(r.selected_option);
+        let selected: string[] = [];
+        if (r.selected_option) {
+          try {
+            const parsed = JSON.parse(r.selected_option);
+            if (Array.isArray(parsed)) selected = parsed;
+            else selected = [r.selected_option];
+          } catch {
+            selected = [r.selected_option];
+          }
+        }
+        setMcqSelections(selected);
         setNumericInput("");
       } else {
         setNumericInput(
           r.numeric_answer != null ? String(r.numeric_answer) : ""
         );
-        setMcqSelection(null);
+        setMcqSelections([]);
       }
       setNumericError(null);
     },
@@ -133,8 +143,8 @@ export function TestTakingClient({ initial }: Props) {
     const q = questions.find((x) => x.id === currentId);
     if (!q) return undefined;
 
-    if (q.type === "mcq" && mcqSelection) {
-      return { status: "answered", selectedOption: mcqSelection };
+    if (q.type === "mcq" && mcqSelections.length > 0) {
+      return { status: "answered", selectedOption: JSON.stringify(mcqSelections) };
     }
     if (q.type === "numeric" && numericInput.trim()) {
       if (!isValidNumericInput(numericInput)) {
@@ -262,11 +272,11 @@ export function TestTakingClient({ initial }: Props) {
 
     let leave: LeaveAnswer | undefined;
     if (q.type === "mcq") {
-      if (!mcqSelection) {
-        setError("Select an option or tap Skip");
+      if (mcqSelections.length === 0) {
+        setError("Select at least one option or tap Skip");
         return;
       }
-      leave = { status: "answered", selectedOption: mcqSelection };
+      leave = { status: "answered", selectedOption: JSON.stringify(mcqSelections) };
     } else {
       if (!numericInput.trim()) {
         setError("Enter an answer or tap Skip");
@@ -443,15 +453,26 @@ export function TestTakingClient({ initial }: Props) {
                     key={opt}
                     type="button"
                     variants={reduce ? undefined : fadeUp}
-                    onClick={() => setMcqSelection(opt)}
+                    onClick={() => {
+                      setMcqSelections((prev) =>
+                        prev.includes(opt)
+                          ? prev.filter((o) => o !== opt)
+                          : [...prev, opt]
+                      );
+                    }}
                     whileTap={reduce ? undefined : { scale: 0.98 }}
-                    className={`option-chip ${mcqSelection === opt ? "option-chip-selected" : ""
+                    className={`option-chip ${mcqSelections.includes(opt) ? "option-chip-selected" : ""
                       }`}
                   >
-                    <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-lg bg-white/10 text-xs font-bold text-muted-foreground">
-                      {String.fromCharCode(65 + i)}
-                    </span>
-                    {opt}
+                    <div className="flex items-center gap-3 w-full">
+                      <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors ${mcqSelections.includes(opt)
+                          ? "bg-primary border-primary text-primary-foreground"
+                          : "border-white/20 bg-white/5"
+                        }`}>
+                        {mcqSelections.includes(opt) && <Check className="h-3.5 w-3.5" />}
+                      </div>
+                      <span className="flex-1 text-left">{opt}</span>
+                    </div>
                   </motion.button>
                 ))}
               </motion.div>

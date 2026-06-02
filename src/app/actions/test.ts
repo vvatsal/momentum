@@ -122,14 +122,14 @@ export async function saveMcqQuestion(input: unknown): Promise<ActionResult> {
   }
 
   const d = parsed.data;
-  if (!d.options.includes(d.correct_option)) {
-    return { ok: false, error: "Correct option must be one of the choices" };
+  if (!d.correct_options.every((opt) => d.options.includes(opt))) {
+    return { ok: false, error: "All correct options must be in the choices list" };
   }
 
   const locked = await isTestLocked(supabase, d.testId);
   if (locked) return { ok: false, error: "Test is locked — cannot edit questions" };
 
-  const correct_answer: McqCorrectAnswer = { option: d.correct_option };
+  const correct_answer: McqCorrectAnswer = { options: d.correct_options };
   const row = {
     test_id: d.testId,
     type: "mcq" as const,
@@ -231,7 +231,7 @@ export async function saveBulkQuestions(input: unknown): Promise<ActionResult> {
       return {
         ...base,
         options: q.options,
-        correct_answer: { option: q.correct_option } as McqCorrectAnswer,
+        correct_answer: { options: q.correct_options } as McqCorrectAnswer,
         numeric_tolerance: null,
       };
     } else {

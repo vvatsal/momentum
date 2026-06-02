@@ -113,8 +113,23 @@ export function LoginForm({ mode = "student", redirectTo }: LoginFormProps) {
       );
       if (signInError) throw signInError;
 
-      // After successful login, redirect to the home page or the 'next' param
-      // The middleware will handle the role-based redirection from there.
+      // Fetch role immediately to speed up the first redirect
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const role = await getProfileRole(asProfileClient(supabase), user.id);
+        if (role) {
+          // Set cookie for middleware to pick up
+          document.cookie = `user-role=${role}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+
+          // Redirect directly to the correct dashboard
+          const target = redirectTo || (role === "admin" ? "/admin" : "/dashboard");
+          router.push(target);
+          router.refresh();
+          return;
+        }
+      }
+
+      // Fallback redirect
       router.push(redirectTo ?? "/");
       router.refresh();
     } catch (e) {

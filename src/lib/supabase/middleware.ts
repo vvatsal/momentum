@@ -51,8 +51,19 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (user) {
-    const role =
-      (await getProfileRole(asProfileClient(supabase), user.id)) ?? undefined;
+    const roleCookie = request.cookies.get("user-role")?.value;
+    let role = roleCookie;
+
+    if (!role) {
+      role = (await getProfileRole(asProfileClient(supabase), user.id)) ?? undefined;
+      if (role) {
+        supabaseResponse.cookies.set("user-role", role, {
+          path: "/",
+          maxAge: 60 * 60 * 24 * 7, // 1 week
+          sameSite: "lax",
+        });
+      }
+    }
 
     if (isAuthRoute || pathname === "/") {
       if (role === "admin") {

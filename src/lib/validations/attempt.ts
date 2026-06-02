@@ -4,7 +4,7 @@ export const saveAnswerSchema = z.object({
   attemptId: z.string().uuid(),
   questionId: z.string().uuid(),
   status: z.enum(["answered", "skipped", "unanswered"]),
-  selectedOption: z.string().nullable().optional(),
+  selectedOption: z.string().nullable().optional(), // Will store JSON string for MSQ
   numericAnswer: z.number().nullable().optional(),
 });
 
