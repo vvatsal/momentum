@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,7 +20,7 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 interface LoginFormProps {
-  mode: "student" | "admin";
+  mode?: "student" | "admin";
   redirectTo?: string;
 }
 
@@ -50,9 +51,8 @@ function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promi
   ]);
 }
 
-export function LoginForm({ mode, redirectTo }: LoginFormProps) {
+export function LoginForm({ mode = "student", redirectTo }: LoginFormProps) {
   const router = useRouter();
-  const [useMagicLink, setUseMagicLink] = useState(mode === "student");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -95,76 +95,28 @@ export function LoginForm({ mode, redirectTo }: LoginFormProps) {
       return;
     }
 
-    const appUrl = getClientAppUrl();
-
     try {
-      if (useMagicLink && mode === "student") {
-        const { error: otpError } = await withTimeout(
-          supabase.auth.signInWithOtp({
-            email: values.email,
-            options: {
-              emailRedirectTo: `${appUrl}/auth/callback?next=${encodeURIComponent(redirectTo ?? "/dashboard")}`,
-            },
-          }),
-          20000,
-          "Request timed out. Check Vercel env vars (real Supabase URL) and Redeploy."
-        );
-        if (otpError) throw otpError;
-        setMessage("Check your email for the magic link.");
-      } else {
-        const password = values.password?.trim() ?? "";
-        if (password.length < 6) {
-          setError("Password must be at least 6 characters");
-          setLoading(false);
-          return;
-        }
-
-        const { error: signInError } = await withTimeout(
-          supabase.auth.signInWithPassword({
-            email: values.email,
-            password,
-          }),
-          20000,
-          "Login timed out. On Vercel: set real Supabase URL + anon key, then Redeploy (required for NEXT_PUBLIC_*)."
-        );
-        if (signInError) throw signInError;
-
-        const {
-          data: { user },
-        } = await withTimeout(
-          supabase.auth.getUser(),
-          10000,
-          "Could not verify session after login."
-        );
-        if (!user) throw new Error("Sign in failed");
-
-        const role = await withTimeout(
-          getProfileRole(asProfileClient(supabase), user.id),
-          10000,
-          "Could not load your profile. Run npm run db:seed or fix role in Supabase."
-        );
-
-        if (!role) {
-          await supabase.auth.signOut();
-          throw new Error(
-            "Your account has no profile yet. Run npm run db:seed locally, or ask an admin to set your role in Supabase."
-          );
-        }
-
-        if (mode === "admin" && role !== "admin") {
-          await supabase.auth.signOut();
-          throw new Error(
-            "This account is not an admin. Use /login for students, or fix the role in Supabase → profiles."
-          );
-        }
-        if (mode === "student" && role !== "student") {
-          await supabase.auth.signOut();
-          throw new Error("Please use the admin login for this account.");
-        }
-
-        router.push(redirectTo ?? (mode === "admin" ? "/admin" : "/dashboard"));
-        router.refresh();
+      const password = values.password?.trim() ?? "";
+      if (password.length < 6) {
+        setError("Password must be at least 6 characters");
+        setLoading(false);
+        return;
       }
+
+      const { error: signInError } = await withTimeout(
+        supabase.auth.signInWithPassword({
+          email: values.email,
+          password,
+        }),
+        20000,
+        "Login timed out. On Vercel: set real Supabase URL + anon key, then Redeploy (required for NEXT_PUBLIC_*)."
+      );
+      if (signInError) throw signInError;
+
+      // After successful login, redirect to the home page or the 'next' param
+      // The middleware will handle the role-based redirection from there.
+      router.push(redirectTo ?? "/");
+      router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Sign in failed");
     } finally {
@@ -188,27 +140,23 @@ export function LoginForm({ mode, redirectTo }: LoginFormProps) {
         )}
       </div>
 
-      {(!useMagicLink || mode === "admin") && (
-        <div className="space-y-2">
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
           <Label htmlFor="password">Password</Label>
-          <Input
-            id="password"
-            type="password"
-            autoComplete="current-password"
-            {...register("password")}
-          />
+          <Link
+            href="/forgot-password"
+            className="text-xs font-medium text-cyan-400 hover:text-cyan-300"
+          >
+            Forgot password?
+          </Link>
         </div>
-      )}
-
-      {mode === "student" && (
-        <button
-          type="button"
-          className="text-sm font-medium text-cyan-400 hover:text-cyan-300"
-          onClick={() => setUseMagicLink((v) => !v)}
-        >
-          {useMagicLink ? "Use email and password instead" : "Use magic link instead"}
-        </button>
-      )}
+        <Input
+          id="password"
+          type="password"
+          autoComplete="current-password"
+          {...register("password")}
+        />
+      </div>
 
       {configError && (
         <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
@@ -232,11 +180,7 @@ export function LoginForm({ mode, redirectTo }: LoginFormProps) {
         size="lg"
         disabled={loading || !!configError}
       >
-        {loading
-          ? "Please wait…"
-          : useMagicLink && mode === "student"
-            ? "Send magic link"
-            : "Sign in"}
+        {loading ? "Please wait…" : "Sign in"}
       </Button>
     </form>
   );

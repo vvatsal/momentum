@@ -5,11 +5,11 @@ import { fadeUp, scaleIn } from "@/lib/motion";
 import { LoginForm } from "@/components/auth/login-form";
 
 type LoginPanelProps = {
-  mode: "student" | "admin";
+  mode?: "student" | "admin";
   redirectTo?: string;
 };
 
-export function LoginPanel({ mode, redirectTo }: LoginPanelProps) {
+export function LoginPanel({ mode = "student", redirectTo }: LoginPanelProps) {
   const reduce = useReducedMotion();
 
   return (

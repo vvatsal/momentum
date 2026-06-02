@@ -38,15 +38,12 @@ export async function updateSession(request: NextRequest) {
 
   const isAuthRoute =
     pathname.startsWith("/login") ||
-    pathname.startsWith("/admin/login") ||
     pathname.startsWith("/auth");
 
   const isPublicRoute = pathname === "/" || isAuthRoute;
 
   if (!user && !isPublicRoute) {
-    const loginUrl = pathname.startsWith("/admin")
-      ? new URL("/admin/login", request.url)
-      : new URL("/login", request.url);
+    const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(loginUrl);
   }

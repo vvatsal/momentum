@@ -4,6 +4,7 @@ import { TestList, type DashboardTest } from "@/components/dashboard/test-list";
 import { AppHeader } from "@/components/layout/app-header";
 import { PageShell } from "@/components/layout/page-shell";
 import { StudentBottomNav } from "@/components/layout/student-bottom-nav";
+import { ChangePassword } from "@/components/auth/change-password";
 
 export const dynamic = "force-dynamic";
 
@@ -66,6 +67,9 @@ export default async function StudentDashboardPage() {
           </p>
         </div>
         <TestList tests={list} />
+        <div className="mt-12">
+          <ChangePassword />
+        </div>
       </div>
       <StudentBottomNav />
     </PageShell>

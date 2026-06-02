@@ -17,10 +17,10 @@ export default async function StudentLoginPage({
       <div className="mx-auto w-full max-w-md">
         <div className="mb-8 text-center">
           <h1 className="text-2xl font-black tracking-tight">
-            Student <span className="gradient-text">sign in</span>
+            Sign in to <span className="gradient-text">Momentum</span>
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Magic link or password — your choice
+            Enter your email to access your account
           </p>
         </div>
         <SupabaseConfigAlert />
