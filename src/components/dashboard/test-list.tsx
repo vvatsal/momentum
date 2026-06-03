@@ -77,18 +77,35 @@ export function TestList({ tests }: { tests: DashboardTest[] }) {
                   </div>
                 </div>
 
-                <div className="mt-6 flex items-center justify-between">
+                <div className="mt-6 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-4">
                     <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                       <Clock className="h-3.5 w-3.5" />
                       {test.duration_minutes ? `${test.duration_minutes}m` : "No limit"}
                     </span>
                   </div>
-                  <Button asChild size="sm" className="shine-btn rounded-xl px-6 h-9 font-semibold">
-                    <Link href={`/tests/${test.id}`}>
-                      {status === "submitted" ? "View Results" : status === "in_progress" ? "Resume" : "Start Test"}
-                    </Link>
-                  </Button>
+                  <div className="flex gap-2">
+                    {status === "submitted" ? (
+                      <>
+                        <Button asChild variant="outline" size="sm" className="rounded-xl px-4 h-9 font-semibold">
+                          <Link href={`/tests/${test.id}/summary`}>
+                            View Results
+                          </Link>
+                        </Button>
+                        <Button asChild size="sm" className="shine-btn rounded-xl px-4 h-9 font-semibold">
+                          <Link href={`/tests/${test.id}/attempt?retest=true`}>
+                            Retake Test
+                          </Link>
+                        </Button>
+                      </>
+                    ) : (
+                      <Button asChild size="sm" className="shine-btn rounded-xl px-6 h-9 font-semibold">
+                        <Link href={`/tests/${test.id}`}>
+                          {status === "in_progress" ? "Resume" : "Start Test"}
+                        </Link>
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             </motion.div>
