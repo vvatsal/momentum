@@ -530,6 +530,14 @@ export function TestTakingClient({ initial, userRole }: Props) {
                       size="sm"
                       onClick={async () => {
                         if (!editData) return;
+                        if (!testId) {
+                          setError("Test ID is missing. Please refresh the page.");
+                          return;
+                        }
+                        if (isNaN(editData.marks)) {
+                          setError("Marks must be a valid number.");
+                          return;
+                        }
                         setSubmitting(true);
                         let res;
                         if (currentQuestion.type === "mcq") {

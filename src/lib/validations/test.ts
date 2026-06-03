@@ -26,28 +26,28 @@ export const createTestSchema = z.object({
 });
 
 export const mcqQuestionSchema = z.object({
-  testId: z.string().uuid(),
+  testId: z.string().uuid("Test ID is required"),
   questionId: z.string().uuid().optional(),
   question_text: z.string().min(1, "Question text is required"),
-  marks: z.coerce.number().min(0.5).max(100),
+  marks: z.coerce.number().min(0.5, "Marks must be at least 0.5").max(100),
   options: z
-    .array(z.string().min(1))
-    .min(2, "At least two options")
+    .array(z.string().min(1, "Option text cannot be empty"))
+    .min(2, "At least two options are required")
     .max(8),
   correct_option: z.string().min(1, "Select the correct option"),
   explanation: z.string().max(2000).optional().nullable(),
 });
 
 export const msqQuestionSchema = z.object({
-  testId: z.string().uuid(),
+  testId: z.string().uuid("Test ID is required"),
   questionId: z.string().uuid().optional(),
   question_text: z.string().min(1, "Question text is required"),
-  marks: z.coerce.number().min(0.5).max(100),
+  marks: z.coerce.number().min(0.5, "Marks must be at least 0.5").max(100),
   options: z
-    .array(z.string().min(1))
-    .min(2, "At least two options")
+    .array(z.string().min(1, "Option text cannot be empty"))
+    .min(2, "At least two options are required")
     .max(8),
-  correct_options: z.array(z.string().min(1)).min(2, "Select at least two correct options"),
+  correct_options: z.array(z.string().min(1)).min(1, "Select at least one correct option"),
   explanation: z.string().max(2000).optional().nullable(),
 });
 

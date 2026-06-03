@@ -146,8 +146,6 @@ export function LoginForm({ mode = "student", redirectTo }: LoginFormProps) {
         <Input
           id="email"
           type="email"
-          autoComplete="email"
-          placeholder="you@school.edu"
           {...register("email")}
         />
         {errors.email && (
