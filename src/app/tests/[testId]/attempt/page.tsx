@@ -11,16 +11,17 @@ export default async function TestAttemptPage({
   searchParams,
 }: {
   params: { testId: string };
-  searchParams: { q?: string };
+  searchParams: { q?: string; retest?: string };
 }) {
   const profile = await requireProfile();
   if (profile.role !== "student" && profile.role !== "admin") {
     redirect("/login");
   }
 
-  const bundle = await startOrResumeAttempt(params.testId);
+  const isRetest = searchParams.retest === "true";
+  const bundle = await startOrResumeAttempt(params.testId, isRetest);
 
-  if (bundle.attempt.status === "submitted") {
+  if (bundle.attempt.status === "submitted" && !isRetest) {
     redirect(`/tests/${params.testId}/summary`);
   }
 

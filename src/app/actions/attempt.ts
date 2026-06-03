@@ -97,7 +97,7 @@ export async function getAttemptForTest(testId: string) {
   return data;
 }
 
-export async function startOrResumeAttempt(testId: string): Promise<AttemptBundle> {
+export async function startOrResumeAttempt(testId: string, forceNew = false): Promise<AttemptBundle> {
   const { supabase, userId } = await requireStudent();
 
   const { data: test, error: testError } = await supabase
@@ -134,12 +134,12 @@ export async function startOrResumeAttempt(testId: string): Promise<AttemptBundl
     .limit(1)
     .maybeSingle();
 
-  if (attempt?.status === "submitted" && !isAdmin) {
+  if (attempt?.status === "submitted" && !isAdmin && !forceNew) {
     redirect(`/tests/${testId}/summary`);
   }
 
-  // If admin and previous attempt is submitted, or no attempt exists, create new
-  if (!attempt || (attempt.status === "submitted" && isAdmin)) {
+  // If forceNew is true and previous is submitted, or admin and submitted, or no attempt exists, create new
+  if (!attempt || (attempt.status === "submitted" && (isAdmin || forceNew))) {
     attempt = null; // Force creation
   }
 

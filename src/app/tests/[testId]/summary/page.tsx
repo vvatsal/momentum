@@ -87,10 +87,10 @@ export default async function TestSummaryPage({
                     </span>
                     <span
                       className={`shrink-0 text-xs font-semibold tabular-nums ${correct
-                          ? "text-emerald-400"
-                          : r?.status === "skipped"
-                            ? "text-amber-400"
-                            : "text-red-400"
+                        ? "text-emerald-400"
+                        : r?.status === "skipped"
+                          ? "text-amber-400"
+                          : "text-red-400"
                         }`}
                     >
                       {correct ? "✓" : r?.status === "skipped" ? "—" : "✗"}{" "}
@@ -103,6 +103,9 @@ export default async function TestSummaryPage({
             <div className="flex flex-col gap-2">
               <Button asChild className="w-full" size="lg">
                 <Link href={`/tests/${test.id}/review`}>Review Answers</Link>
+              </Button>
+              <Button asChild className="w-full" variant="secondary" size="lg">
+                <Link href={`/tests/${test.id}/attempt?retest=true`}>Retake Test</Link>
               </Button>
               <Button asChild className="w-full" variant="outline" size="lg">
                 <Link href="/dashboard">Back to tests</Link>

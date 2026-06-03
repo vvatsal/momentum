@@ -154,9 +154,14 @@ export default async function TestReviewPage({
                     })}
                 </div>
 
-                <Button asChild className="w-full" variant="outline">
-                    <Link href="/dashboard">Return to Dashboard</Link>
-                </Button>
+                <div className="flex flex-col gap-3">
+                    <Button asChild className="w-full" variant="secondary">
+                        <Link href={`/tests/${test.id}/attempt?retest=true`}>Retake Test</Link>
+                    </Button>
+                    <Button asChild className="w-full" variant="outline">
+                        <Link href="/dashboard">Return to Dashboard</Link>
+                    </Button>
+                </div>
             </div>
         </PageShell>
     );
