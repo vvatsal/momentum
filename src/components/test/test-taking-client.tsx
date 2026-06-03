@@ -195,13 +195,12 @@ export function TestTakingClient({ initial, userRole }: Props) {
       });
 
       syncingRef.current = false;
-      if (res.ok) {
-        setSaveState("saved");
-        window.setTimeout(() => setSaveState("idle"), 800);
-      } else {
-        setSaveState("idle");
-        setError(res.error);
+      if (!res.ok) {
+        setError((res as any).error || "Failed to sync progress");
+        return;
       }
+      setSaveState("saved");
+      window.setTimeout(() => setSaveState("idle"), 800);
       return res;
     },
     [attemptId]
@@ -357,7 +356,7 @@ export function TestTakingClient({ initial, userRole }: Props) {
     setSubmitting(false);
     setSubmitOpen(false);
     if (!res.ok) {
-      setError(res.error);
+      setError((res as any).error || "Submission failed");
       return;
     }
     router.push(`/tests/${testId}/summary`);

@@ -84,6 +84,7 @@ export type SafeQuestion = {
   options: string[] | null;
   correct_answer?: McqCorrectAnswer | NumericCorrectAnswer;
   numeric_tolerance?: number | null;
+  explanation?: string | null;
 };
 
 export function toSafeQuestion(
@@ -100,5 +101,6 @@ export function toSafeQuestion(
     options: q.options as string[] | null,
     correct_answer: q.correct_answer,
     numeric_tolerance: q.numeric_tolerance,
+    explanation: q.explanation,
   };
 }
