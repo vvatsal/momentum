@@ -29,25 +29,48 @@ export function BulkUploadDialog({ testId }: Props) {
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
 
+    /** Split a CSV line respecting quoted fields (handles commas inside quotes). */
+    const splitCsvLine = (line: string): string[] => {
+        const result: string[] = [];
+        let current = "";
+        let inQuotes = false;
+        for (let i = 0; i < line.length; i++) {
+            const ch = line[i];
+            if (ch === '"') {
+                if (inQuotes && line[i + 1] === '"') {
+                    current += '"';
+                    i++; // skip escaped quote
+                } else {
+                    inQuotes = !inQuotes;
+                }
+            } else if (ch === ',' && !inQuotes) {
+                result.push(current.trim());
+                current = "";
+            } else {
+                current += ch;
+            }
+        }
+        result.push(current.trim());
+        return result;
+    };
+
     const parseCSV = (text: string) => {
         const lines = text.split("\n").filter((l) => l.trim());
         if (lines.length < 2) throw new Error("CSV must have a header and at least one data row.");
 
-        const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
+        const headers = splitCsvLine(lines[0]).map((h) => h.toLowerCase());
         const dataRows = lines.slice(1);
 
         return dataRows.map((row, index) => {
-            // Simple CSV split (doesn't handle quoted commas, but good for a start)
-            // For a more robust solution, we'd use a library or a better regex
-            const values = row.split(",").map((v) => v.trim().replace(/^"|"$/g, ""));
-            const obj: any = {};
+            const values = splitCsvLine(row);
+            const obj: Record<string, string> = {};
             headers.forEach((h, i) => {
-                obj[h] = values[i];
+                obj[h] = values[i] ?? "";
             });
 
             const type = obj.type?.toLowerCase();
-            if (type !== "mcq" && type !== "numeric") {
-                throw new Error(`Row ${index + 2}: Invalid type "${type}". Must be "mcq" or "numeric".`);
+            if (type !== "mcq" && type !== "msq" && type !== "numeric") {
+                throw new Error(`Row ${index + 2}: Invalid type "${type}". Must be "mcq", "msq", or "numeric".`);
             }
 
             const base = {
@@ -67,6 +90,17 @@ export function BulkUploadDialog({ testId }: Props) {
                     type: "mcq" as const,
                     options,
                     correct_option: obj.correct_answer || obj.correct_option,
+                };
+            } else if (type === "msq") {
+                const options = (obj.options || "").split("|").map((o: string) => o.trim()).filter(Boolean);
+                if (options.length < 2) throw new Error(`Row ${index + 2}: MSQ must have at least 2 options separated by "|".`);
+                const correct_options = (obj.correct_answer || "").split("|").map((o: string) => o.trim()).filter(Boolean);
+                if (correct_options.length < 2) throw new Error(`Row ${index + 2}: MSQ must have at least 2 correct answers separated by "|".`);
+                return {
+                    ...base,
+                    type: "msq" as const,
+                    options,
+                    correct_options,
                 };
             } else {
                 return {

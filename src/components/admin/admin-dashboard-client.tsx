@@ -92,7 +92,7 @@ export function AdminDashboardClient({
           <div className="space-y-2">
             <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Sample MCQ</p>
             <code className="block rounded-lg bg-white/5 p-3 text-[10px] font-mono text-muted-foreground">
-              mcq,"What is 2+2?",1,"4|5|6",4,"Basic math",
+              {'mcq,"What is 2+2?",1,"4|5|6",4,"Basic math",'}
             </code>
           </div>
         </div>
