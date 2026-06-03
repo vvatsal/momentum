@@ -678,7 +678,7 @@ export function TestTakingClient({ initial, userRole }: Props) {
                     </Button>
                   </div>
                 ) : (
-                  currentQuestion.options.map((opt) => (
+                  (currentQuestion.options as string[]).map((opt: string) => (
                     <motion.button
                       key={opt}
                       type="button"
