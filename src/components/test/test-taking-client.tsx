@@ -56,6 +56,7 @@ export function TestTakingClient({ initial, userRole }: Props) {
     marks: number;
     correctAnswer: any;
     tolerance?: number;
+    explanation?: string;
   } | null>(null);
   const reduce = useReducedMotion();
   const router = useRouter();
@@ -463,8 +464,9 @@ export function TestTakingClient({ initial, userRole }: Props) {
                       text: currentQuestion.question_text,
                       options: [...(currentQuestion.options || [])],
                       marks: currentQuestion.marks,
-                      correctAnswer: (currentQuestion as any).correct_answer,
-                      tolerance: (currentQuestion as any).numeric_tolerance,
+                      correctAnswer: (currentQuestion as any).correct_answer || (currentQuestion.type === "numeric" ? { value: 0 } : { options: [] }),
+                      tolerance: (currentQuestion as any).numeric_tolerance ?? 0,
+                      explanation: (currentQuestion as any).explanation ?? "",
                     });
                     setIsEditing(true);
                   }}
@@ -538,6 +540,7 @@ export function TestTakingClient({ initial, userRole }: Props) {
                             marks: editData.marks,
                             options: editData.options,
                             correct_option: editData.correctAnswer.options[0],
+                            explanation: editData.explanation,
                           });
                         } else if (currentQuestion.type === "msq") {
                           res = await saveMsqQuestion({
@@ -547,6 +550,7 @@ export function TestTakingClient({ initial, userRole }: Props) {
                             marks: editData.marks,
                             options: editData.options,
                             correct_options: editData.correctAnswer.options,
+                            explanation: editData.explanation,
                           });
                         } else {
                           res = await saveNumericQuestion({
@@ -556,6 +560,7 @@ export function TestTakingClient({ initial, userRole }: Props) {
                             marks: editData.marks,
                             correct_value: editData.correctAnswer.value,
                             numeric_tolerance: editData.tolerance,
+                            explanation: editData.explanation,
                           });
                         }
 
