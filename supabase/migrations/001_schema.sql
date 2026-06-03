@@ -88,8 +88,7 @@ CREATE TABLE public.attempts (
   max_score NUMERIC(12, 2),
   current_question_id UUID REFERENCES public.questions(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  CONSTRAINT attempts_one_active_per_test UNIQUE (test_id, student_id)
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE INDEX attempts_test_id_idx ON public.attempts (test_id);

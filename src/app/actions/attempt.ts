@@ -53,8 +53,8 @@ async function requireStudent() {
     .eq("id", user.id)
     .single();
 
-  if (profile?.role !== "student") redirect("/admin");
-  return { supabase, userId: user.id };
+  if (profile?.role !== "student" && profile?.role !== "admin") redirect("/login");
+  return { supabase, userId: user.id, role: profile.role };
 }
 
 async function getOwnedAttempt(supabase: Awaited<ReturnType<typeof createClient>>, attemptId: string, userId: string) {
@@ -90,6 +90,8 @@ export async function getAttemptForTest(testId: string) {
     .select("id, status, submitted_at, total_score, max_score")
     .eq("test_id", testId)
     .eq("student_id", userId)
+    .order("started_at", { ascending: false })
+    .limit(1)
     .maybeSingle();
 
   return data;
@@ -123,10 +125,19 @@ export async function startOrResumeAttempt(testId: string): Promise<AttemptBundl
     .select("*")
     .eq("test_id", testId)
     .eq("student_id", userId)
+    .order("started_at", { ascending: false })
+    .limit(1)
     .maybeSingle();
 
-  if (attempt?.status === "submitted") {
+  const isAdmin = (await supabase.from("profiles").select("role").eq("id", userId).single()).data?.role === "admin";
+
+  if (attempt?.status === "submitted" && !isAdmin) {
     redirect(`/tests/${testId}/summary`);
+  }
+
+  // If admin and previous attempt is submitted, or no attempt exists, create new
+  if (!attempt || (attempt.status === "submitted" && isAdmin)) {
+    attempt = null; // Force creation
   }
 
   const now = new Date().toISOString();

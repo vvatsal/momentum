@@ -13,7 +13,10 @@ export default async function TestAttemptPage({
   params: { testId: string };
   searchParams: { q?: string };
 }) {
-  await requireProfile("student");
+  const profile = await requireProfile();
+  if (profile.role !== "student" && profile.role !== "admin") {
+    redirect("/login");
+  }
 
   const bundle = await startOrResumeAttempt(params.testId);
 
@@ -27,7 +30,7 @@ export default async function TestAttemptPage({
 
   return (
     <PageShell noPadding>
-      <TestTakingClient initial={initial} />
+      <TestTakingClient initial={initial} userRole={profile.role} />
     </PageShell>
   );
 }

@@ -9,6 +9,11 @@ import {
   type AttemptBundle,
   type AttemptResponseState,
 } from "@/app/actions/attempt";
+import {
+  saveMcqQuestion,
+  saveMsqQuestion,
+  saveNumericQuestion,
+} from "@/app/actions/test";
 import { QuestionPalette } from "@/components/test/question-palette";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,11 +33,12 @@ import { formatDuration } from "@/lib/format";
 import { isValidNumericInput, parseNumericInput } from "@/lib/scoring";
 import type { ResponseStatus } from "@/types/database";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Check, Loader2 } from "lucide-react";
+import { Check, Loader2, Edit2, Save, X, Plus, Trash2 } from "lucide-react";
 import { slideInRight, staggerContainer, fadeUp } from "@/lib/motion";
 
 type Props = {
   initial: AttemptBundle;
+  userRole: "admin" | "student";
 };
 
 type LeaveAnswer = {
@@ -41,7 +47,16 @@ type LeaveAnswer = {
   numericAnswer?: number | null;
 };
 
-export function TestTakingClient({ initial }: Props) {
+export function TestTakingClient({ initial, userRole }: Props) {
+  const isAdmin = userRole === "admin";
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState<{
+    text: string;
+    options: string[];
+    marks: number;
+    correctAnswer: any;
+    tolerance?: number;
+  } | null>(null);
   const reduce = useReducedMotion();
   const router = useRouter();
   const [questions] = useState(initial.questions);
@@ -437,9 +452,137 @@ export function TestTakingClient({ initial }: Props) {
               </AnimatePresence>
             </div>
 
-            <h2 className="text-xl font-bold leading-relaxed tracking-tight">
-              {currentQuestion.question_text}
-            </h2>
+            <div className="group relative">
+              {isAdmin && !isEditing && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute -right-10 top-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={() => {
+                    setEditData({
+                      text: currentQuestion.question_text,
+                      options: [...(currentQuestion.options || [])],
+                      marks: currentQuestion.marks,
+                      correctAnswer: (currentQuestion as any).correct_answer,
+                      tolerance: (currentQuestion as any).numeric_tolerance,
+                    });
+                    setIsEditing(true);
+                  }}
+                >
+                  <Edit2 className="h-4 w-4" />
+                </Button>
+              )}
+
+              {isEditing ? (
+                <div className="space-y-4 bg-white/5 p-4 rounded-xl border border-white/10">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Question Text</label>
+                    <textarea
+                      value={editData?.text}
+                      onChange={(e) => setEditData(prev => prev ? { ...prev, text: e.target.value } : null)}
+                      className="w-full bg-black/20 border border-white/10 rounded-lg p-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                      rows={3}
+                    />
+                  </div>
+
+                  {currentQuestion.type === "numeric" && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Correct Value</label>
+                        <Input
+                          type="number"
+                          step="any"
+                          value={editData?.correctAnswer?.value ?? ""}
+                          onChange={(e) => setEditData(prev => prev ? { ...prev, correctAnswer: { ...prev.correctAnswer, value: parseFloat(e.target.value) } } : null)}
+                          className="bg-black/20 border-white/10"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Tolerance</label>
+                        <Input
+                          type="number"
+                          step="any"
+                          value={editData?.tolerance ?? ""}
+                          onChange={(e) => setEditData(prev => prev ? { ...prev, tolerance: parseFloat(e.target.value) } : null)}
+                          className="bg-black/20 border-white/10"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex gap-4">
+                    <div className="space-y-2 flex-1">
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Marks</label>
+                      <Input
+                        type="number"
+                        step="0.5"
+                        value={editData?.marks}
+                        onChange={(e) => setEditData(prev => prev ? { ...prev, marks: parseFloat(e.target.value) } : null)}
+                        className="bg-black/20 border-white/10"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={async () => {
+                        if (!editData) return;
+                        setSubmitting(true);
+                        let res;
+                        if (currentQuestion.type === "mcq") {
+                          res = await saveMcqQuestion({
+                            testId,
+                            questionId: currentQuestion.id,
+                            question_text: editData.text,
+                            marks: editData.marks,
+                            options: editData.options,
+                            correct_option: editData.correctAnswer.options[0],
+                          });
+                        } else if (currentQuestion.type === "msq") {
+                          res = await saveMsqQuestion({
+                            testId,
+                            questionId: currentQuestion.id,
+                            question_text: editData.text,
+                            marks: editData.marks,
+                            options: editData.options,
+                            correct_options: editData.correctAnswer.options,
+                          });
+                        } else {
+                          res = await saveNumericQuestion({
+                            testId,
+                            questionId: currentQuestion.id,
+                            question_text: editData.text,
+                            marks: editData.marks,
+                            correct_value: editData.correctAnswer.value,
+                            numeric_tolerance: editData.tolerance,
+                          });
+                        }
+
+                        if (res.ok) {
+                          setIsEditing(false);
+                          router.refresh();
+                        } else {
+                          setError(res.error);
+                        }
+                        setSubmitting(false);
+                      }}
+                      disabled={submitting}
+                    >
+                      {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                      Save Changes
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)}>
+                      <X className="h-4 w-4 mr-2" /> Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <h2 className="text-xl font-bold leading-relaxed tracking-tight">
+                  {currentQuestion.question_text}
+                </h2>
+              )}
+            </div>
 
             {(currentQuestion.type === "mcq" || currentQuestion.type === "msq") && currentQuestion.options && (
               <motion.div
@@ -454,45 +597,115 @@ export function TestTakingClient({ initial }: Props) {
                 {currentQuestion.type === "msq" && (
                   <p className="text-xs text-primary font-bold uppercase tracking-widest mb-3">Select all correct answers</p>
                 )}
-                {currentQuestion.options.map((opt) => (
-                  <motion.button
-                    key={opt}
-                    type="button"
-                    variants={reduce ? undefined : fadeUp}
-                    onClick={() => {
-                      if (currentQuestion.type === "mcq") {
-                        setMcqSelections([opt]);
-                      } else {
-                        setMcqSelections((prev) =>
-                          prev.includes(opt)
-                            ? prev.filter((o) => o !== opt)
-                            : [...prev, opt]
-                        );
-                      }
-                    }}
-                    whileTap={reduce ? undefined : { scale: 0.98 }}
-                    className={`option-chip ${mcqSelections.includes(opt) ? "option-chip-selected" : ""}`}
-                  >
-                    <div className="flex items-center gap-3 w-full">
-                      {currentQuestion.type === "mcq" ? (
-                        <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-colors ${mcqSelections.includes(opt)
-                          ? "bg-primary border-primary"
-                          : "border-white/20 bg-white/5"
-                          }`}>
-                          {mcqSelections.includes(opt) && <div className="h-2.5 w-2.5 rounded-full bg-primary-foreground" />}
-                        </div>
-                      ) : (
-                        <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors ${mcqSelections.includes(opt)
-                          ? "bg-primary border-primary text-primary-foreground"
-                          : "border-white/20 bg-white/5"
-                          }`}>
-                          {mcqSelections.includes(opt) && <Check className="h-3.5 w-3.5" />}
-                        </div>
-                      )}
-                      <span className="flex-1 text-left">{opt}</span>
-                    </div>
-                  </motion.button>
-                ))}
+                {isEditing ? (
+                  <div className="space-y-3 mt-4">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Options & Correct Answer</label>
+                    {editData?.options.map((opt, idx) => (
+                      <div key={idx} className="flex gap-2 items-center">
+                        {currentQuestion.type === "mcq" ? (
+                          <input
+                            type="radio"
+                            name="correct-option"
+                            checked={editData.correctAnswer.options.includes(opt)}
+                            onChange={() => setEditData(prev => prev ? { ...prev, correctAnswer: { options: [opt] } } : null)}
+                            className="h-4 w-4 text-primary"
+                          />
+                        ) : (
+                          <input
+                            type="checkbox"
+                            checked={editData.correctAnswer.options.includes(opt)}
+                            onChange={(e) => {
+                              const next = e.target.checked
+                                ? [...editData.correctAnswer.options, opt]
+                                : editData.correctAnswer.options.filter((o: string) => o !== opt);
+                              setEditData(prev => prev ? { ...prev, correctAnswer: { options: next } } : null);
+                            }}
+                            className="h-4 w-4 text-primary rounded"
+                          />
+                        )}
+                        <Input
+                          value={opt}
+                          onChange={(e) => {
+                            const oldVal = editData.options[idx];
+                            const next = [...(editData?.options || [])];
+                            next[idx] = e.target.value;
+
+                            // Also update correct answers if the text changed
+                            let nextCorrect = [...editData.correctAnswer.options];
+                            if (nextCorrect.includes(oldVal)) {
+                              nextCorrect = nextCorrect.map(o => o === oldVal ? e.target.value : o);
+                            }
+
+                            setEditData(prev => prev ? { ...prev, options: next, correctAnswer: { options: nextCorrect } } : null);
+                          }}
+                          className="bg-black/20 border-white/10"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            const val = editData.options[idx];
+                            const next = editData?.options.filter((_, i) => i !== idx) || [];
+                            const nextCorrect = editData.correctAnswer.options.filter((o: string) => o !== val);
+                            setEditData(prev => prev ? { ...prev, options: next, correctAnswer: { options: nextCorrect } } : null);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    ))}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full border-dashed"
+                      onClick={() => {
+                        setEditData(prev => prev ? { ...prev, options: [...prev.options, ""] } : null);
+                      }}
+                    >
+                      <Plus className="h-4 w-4 mr-2" /> Add Option
+                    </Button>
+                  </div>
+                ) : (
+                  currentQuestion.options.map((opt) => (
+                    <motion.button
+                      key={opt}
+                      type="button"
+                      variants={reduce ? undefined : fadeUp}
+                      onClick={() => {
+                        if (currentQuestion.type === "mcq") {
+                          setMcqSelections([opt]);
+                        } else {
+                          setMcqSelections((prev) =>
+                            prev.includes(opt)
+                              ? prev.filter((o) => o !== opt)
+                              : [...prev, opt]
+                          );
+                        }
+                      }}
+                      whileTap={reduce ? undefined : { scale: 0.98 }}
+                      className={`option-chip ${mcqSelections.includes(opt) ? "option-chip-selected" : ""}`}
+                    >
+                      <div className="flex items-center gap-3 w-full">
+                        {currentQuestion.type === "mcq" ? (
+                          <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-colors ${mcqSelections.includes(opt)
+                            ? "bg-primary border-primary"
+                            : "border-white/20 bg-white/5"
+                            }`}>
+                            {mcqSelections.includes(opt) && <div className="h-2.5 w-2.5 rounded-full bg-primary-foreground" />}
+                          </div>
+                        ) : (
+                          <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors ${mcqSelections.includes(opt)
+                            ? "bg-primary border-primary text-primary-foreground"
+                            : "border-white/20 bg-white/5"
+                            }`}>
+                            {mcqSelections.includes(opt) && <Check className="h-3.5 w-3.5" />}
+                          </div>
+                        )}
+                        <span className="flex-1 text-left">{opt}</span>
+                      </div>
+                    </motion.button>
+                  ))
+                )}
               </motion.div>
             )}
 
