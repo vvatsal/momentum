@@ -5,7 +5,7 @@
 -- Enums
 -- ---------------------------------------------------------------------------
 CREATE TYPE public.user_role AS ENUM ('admin', 'student');
-CREATE TYPE public.question_type AS ENUM ('mcq', 'numeric');
+CREATE TYPE public.question_type AS ENUM ('mcq', 'msq', 'numeric');
 CREATE TYPE public.test_status AS ENUM ('draft', 'published', 'archived');
 CREATE TYPE public.attempt_status AS ENUM ('in_progress', 'submitted');
 CREATE TYPE public.response_status AS ENUM ('unanswered', 'answered', 'skipped');

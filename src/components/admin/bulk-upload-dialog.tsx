@@ -85,17 +85,35 @@ export function BulkUploadDialog({ testId }: Props) {
             if (type === "mcq") {
                 const options = (obj.options || "").split("|").map((o: string) => o.trim()).filter(Boolean);
                 if (options.length < 2) throw new Error(`Row ${index + 2}: MCQ must have at least 2 options separated by "|".`);
+
+                let correct = obj.correct_answer || obj.correct_option;
+                // If correct is a number (index), resolve it to the option text
+                if (/^\d+$/.test(correct)) {
+                    const idx = parseInt(correct);
+                    if (options[idx]) correct = options[idx];
+                }
+
                 return {
                     ...base,
                     type: "mcq" as const,
                     options,
-                    correct_option: obj.correct_answer || obj.correct_option,
+                    correct_option: correct,
                 };
             } else if (type === "msq") {
                 const options = (obj.options || "").split("|").map((o: string) => o.trim()).filter(Boolean);
                 if (options.length < 2) throw new Error(`Row ${index + 2}: MSQ must have at least 2 options separated by "|".`);
-                const correct_options = (obj.correct_answer || "").split("|").map((o: string) => o.trim()).filter(Boolean);
-                if (correct_options.length < 2) throw new Error(`Row ${index + 2}: MSQ must have at least 2 correct answers separated by "|".`);
+
+                const correct_raw = (obj.correct_answer || "").split("|").map((o: string) => o.trim()).filter(Boolean);
+                if (correct_raw.length < 2) throw new Error(`Row ${index + 2}: MSQ must have at least 2 correct answers separated by "|".`);
+
+                const correct_options = correct_raw.map(val => {
+                    if (/^\d+$/.test(val)) {
+                        const idx = parseInt(val);
+                        return options[idx] || val;
+                    }
+                    return val;
+                });
+
                 return {
                     ...base,
                     type: "msq" as const,
