@@ -119,7 +119,7 @@ export async function saveMcqQuestion(input: unknown): Promise<ActionResult> {
   const { supabase } = await requireAdmin();
   const parsed = mcqQuestionSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, error: "Invalid MCQ question" };
+    return { ok: false, error: parsed.error.errors[0].message };
   }
 
   const d = parsed.data;
@@ -166,7 +166,7 @@ export async function saveMsqQuestion(input: unknown): Promise<ActionResult> {
   const { supabase } = await requireAdmin();
   const parsed = msqQuestionSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, error: "Invalid MSQ question" };
+    return { ok: false, error: parsed.error.errors[0].message };
   }
 
   const d = parsed.data;
@@ -213,7 +213,7 @@ export async function saveNumericQuestion(input: unknown): Promise<ActionResult>
   const { supabase } = await requireAdmin();
   const parsed = numericQuestionSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, error: "Invalid numeric question" };
+    return { ok: false, error: parsed.error.errors[0].message };
   }
 
   const d = parsed.data;

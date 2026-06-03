@@ -108,9 +108,14 @@ export async function startOrResumeAttempt(testId: string): Promise<AttemptBundl
 
   if (testError || !test) throw new Error("Test not found");
 
+  const isAdmin = (await supabase.from("profiles").select("role").eq("id", userId).single()).data?.role === "admin";
+  const selectFields = isAdmin
+    ? "id, test_id, order_index, type, question_text, image_url, marks, options, correct_answer, numeric_tolerance"
+    : "id, test_id, order_index, type, question_text, image_url, marks, options";
+
   const { data: questionsRaw, error: qError } = await supabase
     .from("questions")
-    .select("id, test_id, order_index, type, question_text, image_url, marks, options")
+    .select(selectFields)
     .eq("test_id", testId)
     .order("order_index", { ascending: true });
 
@@ -118,7 +123,7 @@ export async function startOrResumeAttempt(testId: string): Promise<AttemptBundl
     throw new Error("This test has no questions yet.");
   }
 
-  const questions = (questionsRaw as Question[]).map(toSafeQuestion);
+  const questions = (questionsRaw as any[]).map(toSafeQuestion);
 
   let { data: attempt } = await supabase
     .from("attempts")
@@ -128,8 +133,6 @@ export async function startOrResumeAttempt(testId: string): Promise<AttemptBundl
     .order("started_at", { ascending: false })
     .limit(1)
     .maybeSingle();
-
-  const isAdmin = (await supabase.from("profiles").select("role").eq("id", userId).single()).data?.role === "admin";
 
   if (attempt?.status === "submitted" && !isAdmin) {
     redirect(`/tests/${testId}/summary`);

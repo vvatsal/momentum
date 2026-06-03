@@ -82,20 +82,12 @@ export type SafeQuestion = {
   image_url: string | null;
   marks: number;
   options: string[] | null;
+  correct_answer?: McqCorrectAnswer | NumericCorrectAnswer;
+  numeric_tolerance?: number | null;
 };
 
 export function toSafeQuestion(
-  q: Pick<
-    Question,
-    | "id"
-    | "test_id"
-    | "order_index"
-    | "type"
-    | "question_text"
-    | "image_url"
-    | "marks"
-    | "options"
-  >
+  q: any
 ): SafeQuestion {
   return {
     id: q.id,
@@ -106,5 +98,7 @@ export function toSafeQuestion(
     image_url: q.image_url,
     marks: Number(q.marks),
     options: q.options as string[] | null,
+    correct_answer: q.correct_answer,
+    numeric_tolerance: q.numeric_tolerance,
   };
 }
