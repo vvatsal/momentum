@@ -47,6 +47,18 @@ async function getOwnedAttempt(supabase: any, attemptId: string, userId: string)
   return data as Attempt;
 }
 
+export async function getTestForStudent(testId: string) {
+  const { supabase } = await requireStudent();
+
+  const { data } = await supabase
+    .from("tests")
+    .select("id, title, description, instructions, duration_minutes, status")
+    .eq("id", testId)
+    .single();
+
+  return data;
+}
+
 export async function getAttemptForTest(testId: string) {
   const { supabase, userId } = await requireStudent();
 
