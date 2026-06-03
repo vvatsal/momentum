@@ -43,18 +43,25 @@ export default async function TestReviewPage({
                         const isSkipped = r?.status === "skipped";
                         const isUnanswered = r?.status === "unanswered";
 
-                        let studentAnswer = "—";
-                        if (q.type === "mcq") {
-                            studentAnswer = r?.selected_option || "—";
+                        let studentAnswer: string[] = [];
+                        if (q.type === "mcq" || q.type === "msq") {
+                            if (r?.selected_option) {
+                                try {
+                                    const parsed = JSON.parse(r.selected_option);
+                                    studentAnswer = Array.isArray(parsed) ? parsed : [r.selected_option];
+                                } catch {
+                                    studentAnswer = [r.selected_option];
+                                }
+                            }
                         } else {
-                            studentAnswer = r?.numeric_answer != null ? String(r.numeric_answer) : "—";
+                            studentAnswer = [r?.numeric_answer != null ? String(r.numeric_answer) : "—"];
                         }
 
-                        let correctAnswer = "—";
-                        if (q.type === "mcq") {
-                            correctAnswer = (q.correct_answer as McqCorrectAnswer).option;
+                        let correctOptions: string[] = [];
+                        if (q.type === "mcq" || q.type === "msq") {
+                            correctOptions = (q.correct_answer as McqCorrectAnswer).options || [];
                         } else {
-                            correctAnswer = String((q.correct_answer as NumericCorrectAnswer).value);
+                            correctOptions = [String((q.correct_answer as NumericCorrectAnswer).value)];
                         }
 
                         return (
@@ -78,24 +85,38 @@ export default async function TestReviewPage({
                                     </div>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
-                                    {q.type === "mcq" && q.options && (
+                                    {(q.type === "mcq" || q.type === "msq") && q.options && (
                                         <div className="grid gap-2">
                                             {(q.options as string[]).map((opt) => {
-                                                const isStudentChoice = r?.selected_option === opt;
-                                                const isCorrectChoice = correctAnswer === opt;
+                                                const isStudentChoice = studentAnswer.includes(opt);
+                                                const isCorrectChoice = correctOptions.includes(opt);
                                                 return (
                                                     <div
                                                         key={opt}
                                                         className={`rounded-lg border p-3 text-sm flex items-center justify-between ${isCorrectChoice
-                                                                ? "bg-emerald-500/10 border-emerald-500/50 text-emerald-700 dark:text-emerald-400"
-                                                                : isStudentChoice
-                                                                    ? "bg-destructive/10 border-destructive/50 text-destructive-foreground"
-                                                                    : "bg-muted/50"
+                                                            ? "bg-emerald-500/10 border-emerald-500/50 text-emerald-700 dark:text-emerald-400"
+                                                            : isStudentChoice
+                                                                ? "bg-destructive/10 border-destructive/50 text-destructive-foreground"
+                                                                : "bg-muted/50"
                                                             }`}
                                                     >
-                                                        <span>{opt}</span>
-                                                        {isCorrectChoice && <span className="text-[10px] font-bold uppercase tracking-wider">Correct</span>}
-                                                        {isStudentChoice && !isCorrectChoice && <span className="text-[10px] font-bold uppercase tracking-wider">Your Choice</span>}
+                                                        <div className="flex items-center gap-3">
+                                                            {q.type === "mcq" ? (
+                                                                <div className={`h-4 w-4 rounded-full border ${isCorrectChoice ? "border-emerald-500 bg-emerald-500" : "border-muted-foreground"}`}>
+                                                                    {isCorrectChoice && <div className="h-1.5 w-1.5 rounded-full bg-white m-auto mt-1" />}
+                                                                </div>
+                                                            ) : (
+                                                                <div className={`h-4 w-4 rounded border ${isCorrectChoice ? "border-emerald-500 bg-emerald-500" : "border-muted-foreground"}`}>
+                                                                    {isCorrectChoice && <CheckCircle2 className="h-3 w-3 text-white m-auto" />}
+                                                                </div>
+                                                            )}
+                                                            <span>{opt}</span>
+                                                        </div>
+                                                        <div className="flex gap-2">
+                                                            {isCorrectChoice && <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Correct</span>}
+                                                            {isStudentChoice && !isCorrectChoice && <span className="text-[10px] font-bold uppercase tracking-wider text-destructive">Your Choice</span>}
+                                                            {isStudentChoice && isCorrectChoice && <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Your Choice</span>}
+                                                        </div>
                                                     </div>
                                                 );
                                             })}
@@ -106,11 +127,11 @@ export default async function TestReviewPage({
                                         <div className="grid grid-cols-2 gap-4 text-sm">
                                             <div className="rounded-lg bg-muted p-3">
                                                 <p className="text-xs text-muted-foreground mb-1">Your Answer</p>
-                                                <p className="font-mono font-bold">{studentAnswer}</p>
+                                                <p className="font-mono font-bold">{studentAnswer[0]}</p>
                                             </div>
                                             <div className="rounded-lg bg-emerald-500/10 p-3">
                                                 <p className="text-xs text-emerald-600 dark:text-emerald-400 mb-1">Correct Answer</p>
-                                                <p className="font-mono font-bold text-emerald-700 dark:text-emerald-400">{correctAnswer}</p>
+                                                <p className="font-mono font-bold text-emerald-700 dark:text-emerald-400">{correctOptions[0]}</p>
                                             </div>
                                         </div>
                                     )}
