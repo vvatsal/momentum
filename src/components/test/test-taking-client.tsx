@@ -143,7 +143,7 @@ export function TestTakingClient({ initial }: Props) {
     const q = questions.find((x) => x.id === currentId);
     if (!q) return undefined;
 
-    if (q.type === "mcq" && mcqSelections.length > 0) {
+    if ((q.type === "mcq" || q.type === "msq") && mcqSelections.length > 0) {
       return { status: "answered", selectedOption: JSON.stringify(mcqSelections) };
     }
     if (q.type === "numeric" && numericInput.trim()) {
@@ -157,7 +157,7 @@ export function TestTakingClient({ initial }: Props) {
       };
     }
     return undefined;
-  }, [currentId, mcqSelection, numericInput, questions]);
+  }, [currentId, mcqSelections, numericInput, questions]);
 
   const runSync = useCallback(
     async (
@@ -271,7 +271,7 @@ export function TestTakingClient({ initial }: Props) {
     if (!q) return;
 
     let leave: LeaveAnswer | undefined;
-    if (q.type === "mcq") {
+    if (q.type === "mcq" || q.type === "msq") {
       if (mcqSelections.length === 0) {
         setError("Select at least one option or tap Skip");
         return;
@@ -476,15 +476,15 @@ export function TestTakingClient({ initial }: Props) {
                     <div className="flex items-center gap-3 w-full">
                       {currentQuestion.type === "mcq" ? (
                         <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-colors ${mcqSelections.includes(opt)
-                            ? "bg-primary border-primary"
-                            : "border-white/20 bg-white/5"
+                          ? "bg-primary border-primary"
+                          : "border-white/20 bg-white/5"
                           }`}>
                           {mcqSelections.includes(opt) && <div className="h-2.5 w-2.5 rounded-full bg-primary-foreground" />}
                         </div>
                       ) : (
                         <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors ${mcqSelections.includes(opt)
-                            ? "bg-primary border-primary text-primary-foreground"
-                            : "border-white/20 bg-white/5"
+                          ? "bg-primary border-primary text-primary-foreground"
+                          : "border-white/20 bg-white/5"
                           }`}>
                           {mcqSelections.includes(opt) && <Check className="h-3.5 w-3.5" />}
                         </div>
