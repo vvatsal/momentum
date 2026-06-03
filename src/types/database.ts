@@ -22,6 +22,7 @@ type TableDef<Row, Insert, Update> = {
 export interface Profile {
   id: string;
   email: string;
+  username: string | null;
   full_name: string | null;
   role: UserRole;
   created_at: string;
@@ -122,6 +123,7 @@ export interface Database {
         {
           id: string;
           email: string;
+          username?: string | null;
           full_name?: string | null;
           role?: UserRole;
           created_at?: string;
