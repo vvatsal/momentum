@@ -82,7 +82,7 @@ export function AdminDashboardClient({
           </div>
           <CSVCopyButton />
         </div>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-3">
           <div className="space-y-2">
             <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Headers</p>
             <code className="block rounded-lg bg-white/5 p-3 text-[10px] font-mono text-primary">
@@ -93,6 +93,12 @@ export function AdminDashboardClient({
             <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Sample MCQ</p>
             <code className="block rounded-lg bg-white/5 p-3 text-[10px] font-mono text-muted-foreground">
               {'mcq,"What is 2+2?",1,"4|5|6",4,"Basic math",'}
+            </code>
+          </div>
+          <div className="space-y-2">
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Sample MSQ</p>
+            <code className="block rounded-lg bg-white/5 p-3 text-[10px] font-mono text-muted-foreground">
+              {'msq,"Primes?",2,"2|3|4|5","2|3|5","2,3,5 are prime",'}
             </code>
           </div>
         </div>
@@ -181,6 +187,7 @@ function CSVCopyButton() {
   const [copied, setCopied] = useState(false);
   const sampleCsv = `type,question,marks,options,correct_answer,explanation,tolerance
 mcq,"What is 2+2?",1,"4|5|6",4,"Basic math",
+msq,"Prime numbers?",2,"2|3|4|5","2|3|5","2, 3, 5 are prime",
 numeric,"Value of pi?",1,,3.14,"Constant",0.01`;
 
   const copy = () => {

@@ -153,6 +153,7 @@ export function BulkUploadDialog({ testId }: Props) {
                         <code className="mt-2 block rounded bg-muted p-2 text-[10px] leading-tight">
                             type,question,marks,options,correct_answer,explanation,tolerance<br />
                             mcq,&quot;What is 2+2?&quot;,1,&quot;4|5|6&quot;,4,&quot;Basic math&quot;,<br />
+                            msq,&quot;Prime numbers?&quot;,2,&quot;2|3|4|5&quot;,&quot;2|3|5&quot;,&quot;2, 3, 5 are prime&quot;,<br />
                             numeric,&quot;Value of pi?&quot;,1,,3.14,&quot;Constant&quot;,0.01
                         </code>
                     </DialogDescription>
