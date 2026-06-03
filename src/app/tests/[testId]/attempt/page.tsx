@@ -32,25 +32,16 @@ export default async function TestAttemptPage({
 
   const isRetest = searchParams.retest === "true";
 
-  try {
-    const bundle = await startOrResumeAttempt(params.testId, isRetest);
+  // No try-catch here to allow Next.js redirects to work naturally
+  const bundle = await startOrResumeAttempt(params.testId, isRetest);
 
-    const initial = searchParams.q
-      ? { ...bundle, resumeQuestionId: searchParams.q }
-      : bundle;
+  const initial = searchParams.q
+    ? { ...bundle, resumeQuestionId: searchParams.q }
+    : bundle;
 
-    return (
-      <PageShell noPadding>
-        <TestTakingClient initial={initial} userRole={profile.role} />
-      </PageShell>
-    );
-  } catch (err) {
-    console.error("Error in TestAttemptPage:", err);
-    // If it's a redirect error, re-throw it so Next.js can handle it
-    if (err instanceof Error && err.message === "NEXT_REDIRECT") {
-      throw err;
-    }
-    // Otherwise, redirect to dashboard with error
-    redirect("/dashboard");
-  }
+  return (
+    <PageShell noPadding>
+      <TestTakingClient initial={initial} userRole={profile.role} />
+    </PageShell>
+  );
 }
