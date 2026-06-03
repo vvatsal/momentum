@@ -23,7 +23,8 @@ async function requireStudent() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+
+  if (!user) return { supabase: null, userId: null, role: null };
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -31,7 +32,6 @@ async function requireStudent() {
     .eq("id", user.id)
     .single();
 
-  if (profile?.role !== "student" && profile?.role !== "admin") redirect("/login");
   return { supabase, userId: user.id, role: profile?.role };
 }
 
@@ -47,20 +47,9 @@ async function getOwnedAttempt(supabase: any, attemptId: string, userId: string)
   return data as Attempt;
 }
 
-export async function getTestForStudent(testId: string) {
-  const { supabase } = await requireStudent();
-
-  const { data } = await supabase
-    .from("tests")
-    .select("id, title, description, instructions, duration_minutes, status")
-    .eq("id", testId)
-    .single();
-
-  return data;
-}
-
 export async function getAttemptForTest(testId: string) {
   const { supabase, userId } = await requireStudent();
+  if (!supabase || !userId) return null;
 
   const { data } = await supabase
     .from("attempts")
@@ -76,6 +65,15 @@ export async function getAttemptForTest(testId: string) {
 
 export async function startOrResumeAttempt(testId: string, forceNew = false): Promise<AttemptBundle> {
   const { supabase, userId, role } = await requireStudent();
+
+  if (!supabase || !userId) {
+    redirect("/login");
+  }
+
+  if (role !== "student" && role !== "admin") {
+    redirect("/login");
+  }
+
   const isAdmin = role === "admin";
 
   const { data: test, error: testError } = await supabase
@@ -111,17 +109,13 @@ export async function startOrResumeAttempt(testId: string, forceNew = false): Pr
     .limit(1)
     .maybeSingle();
 
+  // Handle redirect outside of try/catch
   if (attempt?.status === "submitted" && !isAdmin && !forceNew) {
     redirect(`/tests/${testId}/summary`);
   }
 
   if (!attempt || (attempt.status === "submitted" && (isAdmin || forceNew))) {
-    attempt = null;
-  }
-
-  const now = new Date().toISOString();
-
-  if (!attempt) {
+    const now = new Date().toISOString();
     try {
       const { data: created, error: createError } = await supabase
         .from("attempts")
@@ -141,7 +135,7 @@ export async function startOrResumeAttempt(testId: string, forceNew = false): Pr
         throw new Error("Could not start attempt: " + (createError?.message || "Unknown error"));
       }
 
-      attempt = created as Attempt;
+      attempt = created;
 
       const responseRows = questions.map((q) => ({
         attempt_id: attempt!.id,
@@ -162,6 +156,8 @@ export async function startOrResumeAttempt(testId: string, forceNew = false): Pr
       throw err;
     }
   }
+
+  if (!attempt) throw new Error("Failed to load or create attempt");
 
   const { data: responsesRaw, error: rError } = await supabase
     .from("responses")
@@ -196,10 +192,11 @@ export async function syncQuestionNavigation(input: {
     numericAnswer?: number | null;
   };
 }) {
-  const { supabase, userId } = await requireStudent();
-  const { attemptId, leaveQuestionId, enterQuestionId, leaveTimeDelta, leaveAnswer } = input;
-
   try {
+    const { supabase, userId } = await requireStudent();
+    if (!supabase || !userId) return { ok: false, error: "Not authenticated" };
+
+    const { attemptId, leaveQuestionId, enterQuestionId, leaveTimeDelta, leaveAnswer } = input;
     await getOwnedAttempt(supabase, attemptId, userId);
 
     // 1. Update current question
@@ -254,42 +251,48 @@ export async function flushQuestionTiming(input: {
   selectedOption?: string | null;
   numericAnswer?: number | null;
 }) {
-  const { supabase, userId } = await requireStudent();
-  const { attemptId, questionId, deltaSeconds, status, selectedOption, numericAnswer } = input;
+  try {
+    const { supabase, userId } = await requireStudent();
+    if (!supabase || !userId) return;
 
-  await getOwnedAttempt(supabase, attemptId, userId);
+    const { attemptId, questionId, deltaSeconds, status, selectedOption, numericAnswer } = input;
+    await getOwnedAttempt(supabase, attemptId, userId);
 
-  const { data: resp } = await supabase
-    .from("responses")
-    .select("time_spent_seconds")
-    .eq("attempt_id", attemptId)
-    .eq("question_id", questionId)
-    .single();
+    const { data: resp } = await supabase
+      .from("responses")
+      .select("time_spent_seconds")
+      .eq("attempt_id", attemptId)
+      .eq("question_id", questionId)
+      .single();
 
-  const newTime = (Number(resp?.time_spent_seconds) || 0) + deltaSeconds;
+    const newTime = (Number(resp?.time_spent_seconds) || 0) + deltaSeconds;
 
-  const updateData: any = {
-    time_spent_seconds: newTime,
-    updated_at: new Date().toISOString(),
-  };
+    const updateData: any = {
+      time_spent_seconds: newTime,
+      updated_at: new Date().toISOString(),
+    };
 
-  if (status) updateData.status = status;
-  if (selectedOption !== undefined) updateData.selected_option = selectedOption;
-  if (numericAnswer !== undefined) updateData.numeric_answer = numericAnswer;
+    if (status) updateData.status = status;
+    if (selectedOption !== undefined) updateData.selected_option = selectedOption;
+    if (numericAnswer !== undefined) updateData.numeric_answer = numericAnswer;
 
-  await supabase
-    .from("responses")
-    .update(updateData)
-    .eq("attempt_id", attemptId)
-    .eq("question_id", questionId);
+    await supabase
+      .from("responses")
+      .update(updateData)
+      .eq("attempt_id", attemptId)
+      .eq("question_id", questionId);
+  } catch (err) {
+    console.error("Flush timing error:", err);
+  }
 }
 
 export async function finalSubmit(input: { attemptId: string }) {
-  const { attemptId } = input;
-  const { supabase, userId } = await requireStudent();
   try {
-    const attempt = await getOwnedAttempt(supabase, attemptId, userId);
+    const { attemptId } = input;
+    const { supabase, userId } = await requireStudent();
+    if (!supabase || !userId) return { ok: false, error: "Not authenticated" };
 
+    const attempt = await getOwnedAttempt(supabase, attemptId, userId);
     if (attempt.status === "submitted") return { ok: true };
 
     const { data: questions } = await supabase
@@ -341,6 +344,7 @@ export async function finalSubmit(input: { attemptId: string }) {
 
 export async function getSubmittedSummary(testId: string) {
   const { supabase, userId } = await requireStudent();
+  if (!supabase || !userId) return null;
 
   const { data: attempt } = await supabase
     .from("attempts")
@@ -376,4 +380,17 @@ export async function getSubmittedSummary(testId: string) {
     questions: (questions || []).map(toSafeQuestion),
     responses: (responses || []) as AttemptResponseState[],
   };
+}
+
+export async function getTestForStudent(testId: string) {
+  const { supabase } = await requireStudent();
+  if (!supabase) return null;
+
+  const { data } = await supabase
+    .from("tests")
+    .select("id, title, description, instructions, duration_minutes, status")
+    .eq("id", testId)
+    .single();
+
+  return data;
 }
