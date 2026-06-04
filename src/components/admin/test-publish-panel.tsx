@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   archiveTest,
-  deleteDraftTest,
+  deleteTest,
   publishTest,
 } from "@/app/actions/test";
 import { Button } from "@/components/ui/button";
@@ -57,9 +57,9 @@ export function TestPublishPanel({
   }
 
   async function onDelete() {
-    if (!confirm("Delete this draft test permanently?")) return;
+    if (!confirm("Delete this test permanently? All questions and student attempts/scores will be deleted.")) return;
     setPending(true);
-    const result = await deleteDraftTest(testId);
+    const result = await deleteTest(testId);
     setPending(false);
     if (!result.ok) setError(result.error);
     else router.push("/admin");
@@ -120,17 +120,18 @@ export function TestPublishPanel({
         </Button>
       )}
 
-      {status === "draft" && !isLocked && (
+      <div className="pt-2 border-t border-white/[0.06]">
         <Button
           type="button"
           variant="destructive"
           size="sm"
+          className="w-full"
           disabled={pending}
           onClick={onDelete}
         >
-          Delete draft
+          Delete test
         </Button>
-      )}
+      </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
       {info && <p className="text-sm text-muted-foreground">{info}</p>}

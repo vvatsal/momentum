@@ -424,27 +424,41 @@ export async function archiveTest(input: unknown): Promise<ActionResult> {
   return { ok: true };
 }
 
-export async function deleteDraftTest(testId: string): Promise<ActionResult> {
+export async function deleteTest(testId: string): Promise<ActionResult> {
   const { supabase } = await requireAdmin();
 
-  const { data: test } = await supabase
+  // 1. Delete attempts (cascades to responses)
+  const { error: attemptsError } = await supabase
+    .from("attempts")
+    .delete()
+    .eq("test_id", testId);
+
+  if (attemptsError) {
+    return { ok: false, error: attemptsError.message };
+  }
+
+  // 2. Unlock the test to bypass the DB prevent_locked_test_question_changes trigger during deletion
+  const { error: unlockError } = await supabase
     .from("tests")
-    .select("status, is_locked")
-    .eq("id", testId)
-    .single();
+    .update({ is_locked: false })
+    .eq("id", testId);
 
-  if (!test) return { ok: false, error: "Test not found" };
-  if (test.status !== "draft") {
-    return { ok: false, error: "Only draft tests can be deleted" };
-  }
-  if (test.is_locked) {
-    return { ok: false, error: "Test has attempts and cannot be deleted" };
+  if (unlockError) {
+    return { ok: false, error: unlockError.message };
   }
 
-  const { error } = await supabase.from("tests").delete().eq("id", testId);
-  if (error) return { ok: false, error: error.message };
+  // 3. Delete the test itself (cascades to questions)
+  const { error: testError } = await supabase
+    .from("tests")
+    .delete()
+    .eq("id", testId);
+
+  if (testError) {
+    return { ok: false, error: testError.message };
+  }
 
   revalidatePath("/admin");
+  revalidatePath("/dashboard");
   return { ok: true };
 }
 

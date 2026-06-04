@@ -76,38 +76,43 @@ export async function startOrResumeAttempt(testId: string, forceNew = false): Pr
 
   const isAdmin = role === "admin";
 
-  const { data: test, error: testError } = await supabase
-    .from("tests")
-    .select("id, title, description, instructions, duration_minutes, status")
-    .eq("id", testId)
-    .single();
-
-  if (testError || !test) throw new Error("Test not found");
-
   const selectFields = isAdmin
     ? "id, test_id, order_index, type, question_text, image_url, marks, options, correct_answer, numeric_tolerance"
     : "id, test_id, order_index, type, question_text, image_url, marks, options";
 
-  const { data: questionsRaw, error: qError } = await supabase
-    .from("questions")
-    .select(selectFields)
-    .eq("test_id", testId)
-    .order("order_index", { ascending: true });
+  // Parallelize database queries to avoid sequential roundtrips
+  const [testRes, questionsRes, attemptRes] = await Promise.all([
+    supabase
+      .from("tests")
+      .select("id, title, description, instructions, duration_minutes, status")
+      .eq("id", testId)
+      .single(),
+    supabase
+      .from("questions")
+      .select(selectFields)
+      .eq("test_id", testId)
+      .order("order_index", { ascending: true }),
+    supabase
+      .from("attempts")
+      .select("*")
+      .eq("test_id", testId)
+      .eq("student_id", userId)
+      .order("started_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+
+  const { data: test, error: testError } = testRes;
+  const { data: questionsRaw, error: qError } = questionsRes;
+  let { data: attempt } = attemptRes;
+
+  if (testError || !test) throw new Error("Test not found");
 
   if (qError || !questionsRaw?.length) {
     throw new Error("This test has no questions yet.");
   }
 
   const questions = (questionsRaw as any[]).map(toSafeQuestion);
-
-  let { data: attempt } = await supabase
-    .from("attempts")
-    .select("*")
-    .eq("test_id", testId)
-    .eq("student_id", userId)
-    .order("started_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
 
   // Handle redirect outside of try/catch
   if (attempt?.status === "submitted" && !isAdmin && !forceNew) {

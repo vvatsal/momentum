@@ -4,7 +4,6 @@ import { countStudents, listTestsForAdmin } from "@/lib/supabase/queries";
 import { AdminDashboardClient } from "@/components/admin/admin-dashboard-client";
 import { AppHeader } from "@/components/layout/app-header";
 import { PageShell } from "@/components/layout/page-shell";
-import { ChangePassword } from "@/components/auth/change-password";
 
 export const dynamic = "force-dynamic";
 
@@ -26,9 +25,6 @@ export default async function AdminDashboardPage() {
       />
       <div className="mx-auto max-w-lg px-4 py-6 sm:max-w-2xl lg:max-w-4xl">
         <AdminDashboardClient studentCount={studentCount} tests={tests} />
-        <div className="mt-12">
-          <ChangePassword />
-        </div>
       </div>
     </PageShell>
   );
