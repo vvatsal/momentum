@@ -319,18 +319,33 @@ export async function listProfilesForAdmin(
         order(
           column: string,
           options: { ascending: boolean }
-        ): Promise<{ data: Profile[] | null; error: { message: string } | null }>;
+        ): Promise<{ data: any[] | null; error: { message: string } | null }>;
       };
     };
   };
 
   const { data, error } = await client
     .from("profiles")
-    .select("id, email, full_name, role, username, created_at")
+    .select("id, email, full_name, role, created_at, updated_at")
     .order("created_at", { ascending: false });
 
-  if (error || !data) return [];
-  return data;
+  if (error || !data) {
+    if (error) {
+      console.error("Error in listProfilesForAdmin:", error);
+    }
+    return [];
+  }
+
+  return data.map((p) => {
+    let username = null;
+    if (p.email) {
+      username = p.email.split("@")[0];
+    }
+    return {
+      ...p,
+      username,
+    };
+  }) as Profile[];
 }
 
 export async function listAllAttemptsForAdmin(

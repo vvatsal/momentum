@@ -1,5 +1,6 @@
 import { requireProfile } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { countStudents, listTestsForAdmin, listProfilesForAdmin, listAllAttemptsForAdmin } from "@/lib/supabase/queries";
 import { AdminDashboardClient } from "@/components/admin/admin-dashboard-client";
 import { AppHeader } from "@/components/layout/app-header";
@@ -9,13 +10,13 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminDashboardPage() {
   const profile = await requireProfile("admin");
-  const supabase = await createClient();
+  const supabaseAdmin = createAdminClient();
 
   const [studentCount, tests, profiles, attempts] = await Promise.all([
-    countStudents(supabase),
-    listTestsForAdmin(supabase),
-    listProfilesForAdmin(supabase),
-    listAllAttemptsForAdmin(supabase),
+    countStudents(supabaseAdmin),
+    listTestsForAdmin(supabaseAdmin),
+    listProfilesForAdmin(supabaseAdmin),
+    listAllAttemptsForAdmin(supabaseAdmin),
   ]);
 
   return (
