@@ -36,12 +36,19 @@ export function AdminDashboardClient({
             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
               Total Students
             </p>
-            <div className="h-2 w-2 rounded-full bg-primary animate-pulse-glow" />
+            <Button variant="ghost" size="icon" asChild className="h-6 w-6 rounded-full hover:bg-primary/20">
+              <Link href="/admin/users">
+                <Plus className="h-3 w-3 text-primary" />
+              </Link>
+            </Button>
           </div>
           <p className="text-4xl font-black tabular-nums gradient-text">
             {studentCount}
           </p>
-          <p className="mt-2 text-xs text-muted-foreground font-medium">Active learners</p>
+          <p className="mt-2 text-xs text-muted-foreground font-medium flex items-center justify-between">
+            <span>Active learners</span>
+            <Link href="/admin/users" className="text-primary hover:underline font-bold">Manage Users →</Link>
+          </p>
         </motion.div>
 
         <motion.div variants={fadeUp} className="bento-card p-6 group">

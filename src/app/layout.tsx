@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
+import { Toaster } from "@/components/ui/toaster";
 import "./globals.css";
 
 const sans = Plus_Jakarta_Sans({
@@ -27,7 +28,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`${sans.variable} font-sans min-h-dvh`}>{children}</body>
+      <body className={`${sans.variable} font-sans min-h-dvh`}>
+        {children}
+        <Toaster />
+      </body>
     </html>
   );
 }
