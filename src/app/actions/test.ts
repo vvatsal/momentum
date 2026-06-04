@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { notifyStudentsTestPublished } from "@/lib/email/publish-notify";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import {
   archiveTestSchema,
   bulkQuestionsSchema,
@@ -425,10 +426,14 @@ export async function archiveTest(input: unknown): Promise<ActionResult> {
 }
 
 export async function deleteTest(testId: string): Promise<ActionResult> {
-  const { supabase } = await requireAdmin();
+  // Verify the current user is authenticated as an admin
+  await requireAdmin();
+
+  // Create a service role client that bypasses RLS policies
+  const supabaseAdmin = createAdminClient();
 
   // 1. Delete attempts (cascades to responses)
-  const { error: attemptsError } = await supabase
+  const { error: attemptsError } = await supabaseAdmin
     .from("attempts")
     .delete()
     .eq("test_id", testId);
@@ -438,7 +443,7 @@ export async function deleteTest(testId: string): Promise<ActionResult> {
   }
 
   // 2. Unlock the test to bypass the DB prevent_locked_test_question_changes trigger during deletion
-  const { error: unlockError } = await supabase
+  const { error: unlockError } = await supabaseAdmin
     .from("tests")
     .update({ is_locked: false })
     .eq("id", testId);
@@ -448,7 +453,7 @@ export async function deleteTest(testId: string): Promise<ActionResult> {
   }
 
   // 3. Delete the test itself (cascades to questions)
-  const { error: testError } = await supabase
+  const { error: testError } = await supabaseAdmin
     .from("tests")
     .delete()
     .eq("id", testId);

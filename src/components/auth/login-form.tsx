@@ -11,9 +11,10 @@ import { asProfileClient, getProfileRole } from "@/lib/supabase/profile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { resolveUsernameToEmail } from "@/app/actions/auth";
 
 const schema = z.object({
-  email: z.string().email("Enter a valid email"),
+  username: z.string().min(1, "Enter a valid username or email"),
   password: z.string().optional(),
 });
 
@@ -72,7 +73,7 @@ export function LoginForm({ mode = "student", redirectTo }: LoginFormProps) {
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { email: "", password: "" },
+    defaultValues: { username: "", password: "" },
   });
 
   const onSubmit = async (values: FormValues) => {
@@ -103,9 +104,12 @@ export function LoginForm({ mode = "student", redirectTo }: LoginFormProps) {
         return;
       }
 
+      // Resolve username to actual registered email
+      const resolvedEmail = await resolveUsernameToEmail(values.username);
+
       const { error: signInError } = await withTimeout(
         supabase.auth.signInWithPassword({
-          email: values.email,
+          email: resolvedEmail,
           password,
         }),
         20000,
@@ -142,14 +146,15 @@ export function LoginForm({ mode = "student", redirectTo }: LoginFormProps) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="username">Username</Label>
         <Input
-          id="email"
-          type="email"
-          {...register("email")}
+          id="username"
+          type="text"
+          placeholder="Enter your username or email"
+          {...register("username")}
         />
-        {errors.email && (
-          <p className="text-sm text-destructive">{errors.email.message}</p>
+        {errors.username && (
+          <p className="text-sm text-destructive">{errors.username.message}</p>
         )}
       </div>
 

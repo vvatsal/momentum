@@ -20,7 +20,7 @@ export default async function StudentLoginPage({
             Sign in to <span className="gradient-text">Momentum</span>
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Enter your email to access your account
+            Enter your username to access your account
           </p>
         </div>
         <SupabaseConfigAlert />
