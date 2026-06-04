@@ -65,3 +65,32 @@ export async function createUser(input: {
     revalidatePath("/admin/users");
     return { ok: true, userId: newUser.user.id };
 }
+
+export async function changeUserPassword(userId: string, newPassword: string) {
+    const supabase = await createClient();
+    const { data: { user: adminUser } } = await supabase.auth.getUser();
+
+    if (!adminUser) throw new Error("Not authenticated");
+
+    const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", adminUser.id)
+        .single();
+
+    if (profile?.role !== "admin") throw new Error("Unauthorized");
+
+    const adminClient = createAdminClient();
+    const { error } = await adminClient.auth.admin.updateUserById(userId, {
+        password: newPassword,
+    });
+
+    if (error) {
+        console.error("Error updating user password:", error);
+        return { ok: false, error: error.message };
+    }
+
+    revalidatePath("/admin");
+    return { ok: true };
+}
+

@@ -332,3 +332,27 @@ export async function listProfilesForAdmin(
   if (error || !data) return [];
   return data;
 }
+
+export async function listAllAttemptsForAdmin(
+  supabase: unknown
+): Promise<Attempt[]> {
+  const client = supabase as {
+    from(table: "attempts"): {
+      select(columns: string): {
+        order(
+          column: string,
+          options: { ascending: boolean }
+        ): Promise<{ data: Attempt[] | null; error: { message: string } | null }>;
+      };
+    };
+  };
+
+  const { data, error } = await client
+    .from("attempts")
+    .select("*")
+    .order("started_at", { ascending: false });
+
+  if (error || !data) return [];
+  return data;
+}
+

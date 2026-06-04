@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
-import { Plus, FileText, Copy, Check, Users, UploadCloud, Settings, Trash2 } from "lucide-react";
+import { Plus, FileText, Copy, Check, Users, UploadCloud, Settings, Trash2, KeyRound, ChevronDown, ChevronUp, Calendar, Clock, Award } from "lucide-react";
 import { fadeUp, listItem, staggerContainer } from "@/lib/motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,18 @@ import { useRouter } from "next/navigation";
 import { deleteTest } from "@/app/actions/test";
 import { CreateUserForm } from "./create-user-form";
 import { ChangePassword } from "../auth/change-password";
+import { changeUserPassword } from "@/app/actions/admin";
+import type { Profile, Attempt } from "@/types/database";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,9 +45,13 @@ type TestItem = {
 export function AdminDashboardClient({
   studentCount,
   tests,
+  profiles = [],
+  attempts = [],
 }: {
   studentCount: number;
   tests: TestItem[];
+  profiles?: Profile[];
+  attempts?: Attempt[];
 }) {
   const reduce = useReducedMotion();
   const { toast } = useToast();
@@ -45,6 +61,25 @@ export function AdminDashboardClient({
   const [activeTab, setActiveTab] = useState<"tests" | "users" | "upload" | "settings">("tests");
   const [testToDelete, setTestToDelete] = useState<{ id: string; title: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // User Management State
+  const [selectedProfileForPassword, setSelectedProfileForPassword] = useState<Profile | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [expandedProfiles, setExpandedProfiles] = useState<Record<string, boolean>>({});
+
+  const toggleProfileExpanded = (profileId: string) => {
+    setExpandedProfiles((prev) => ({
+      ...prev,
+      [profileId]: !prev[profileId],
+    }));
+  };
+
+  const formatDuration = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}m ${s}s`;
+  };
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -231,33 +266,207 @@ export function AdminDashboardClient({
       {/* Tab: Users */}
       {activeTab === "users" && (
         <div className="space-y-6">
-          <motion.div
-            variants={reduce ? undefined : staggerContainer}
-            initial="hidden"
-            animate="show"
-            className="grid grid-cols-1 gap-4"
-          >
-            <motion.div variants={fadeUp} className="bento-card p-6 group max-w-sm">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                  Total Students
-                </p>
-                <Users className="h-4 w-4 text-primary" />
-              </div>
-              <p className="text-4xl font-black tabular-nums gradient-text">
-                {studentCount}
-              </p>
-              <p className="mt-2 text-xs text-muted-foreground font-medium">Active learners on the platform</p>
-            </motion.div>
-          </motion.div>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            {/* Left Column: Stats & Create Form */}
+            <div className="lg:col-span-1 space-y-6">
+              <motion.div
+                variants={reduce ? undefined : staggerContainer}
+                initial="hidden"
+                animate="show"
+                className="grid grid-cols-1 gap-4"
+              >
+                <motion.div variants={fadeUp} className="bento-card p-6 group">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                      Total Students
+                    </p>
+                    <Users className="h-4 w-4 text-primary" />
+                  </div>
+                  <p className="text-4xl font-black tabular-nums gradient-text">
+                    {studentCount}
+                  </p>
+                  <p className="mt-2 text-xs text-muted-foreground font-medium">Active learners on the platform</p>
+                </motion.div>
+              </motion.div>
 
-          <motion.div
-            variants={fadeUp}
-            initial="hidden"
-            animate="show"
-          >
-            <CreateUserForm />
-          </motion.div>
+              <motion.div
+                variants={fadeUp}
+                initial="hidden"
+                animate="show"
+              >
+                <CreateUserForm />
+              </motion.div>
+            </div>
+
+            {/* Right Column: Users List */}
+            <div className="lg:col-span-2">
+              <motion.div
+                variants={reduce ? undefined : fadeUp}
+                initial="hidden"
+                animate="show"
+                className="bento-card h-full flex flex-col"
+              >
+                <div className="border-b border-white/[0.06] p-6 flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-bold tracking-tight">All Users</h2>
+                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mt-0.5">Manage user profiles and track test scores</p>
+                  </div>
+                  <Badge variant="secondary" className="font-mono">{profiles.length}</Badge>
+                </div>
+
+                {profiles.length === 0 ? (
+                  <div className="p-12 text-center flex-1 flex flex-col items-center justify-center">
+                    <p className="text-sm text-muted-foreground">No users found.</p>
+                  </div>
+                ) : (
+                  <motion.ul
+                    variants={reduce ? undefined : staggerContainer}
+                    initial="hidden"
+                    animate="show"
+                    className="divide-y divide-white/[0.04] overflow-y-auto max-h-[600px] scrollbar-thin"
+                  >
+                    {profiles.map((profile) => {
+                      const userAttempts = attempts.filter((a) => a.student_id === profile.id);
+                      const isExpanded = expandedProfiles[profile.id];
+
+                      return (
+                        <motion.li
+                          key={profile.id}
+                          variants={listItem}
+                          className="group hover:bg-white/[0.01] transition-colors"
+                        >
+                          <div className="p-6">
+                            <div className="flex items-center justify-between gap-4">
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-bold text-sm sm:text-base text-foreground">
+                                    {profile.full_name || "No Name"}
+                                  </span>
+                                  <Badge
+                                    variant={profile.role === "admin" ? "default" : "secondary"}
+                                    className={cn(
+                                      "h-5 text-[10px] uppercase tracking-tighter font-semibold",
+                                      profile.role === "admin"
+                                        ? "bg-cyan-500/10 text-cyan-300 border border-cyan-500/20"
+                                        : "bg-primary/10 text-primary border border-primary/20"
+                                    )}
+                                  >
+                                    {profile.role}
+                                  </Badge>
+                                </div>
+                                <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1.5 text-xs text-muted-foreground font-medium">
+                                  {profile.username && (
+                                    <span>
+                                      Username: <strong className="text-foreground/80 font-mono">{profile.username}</strong>
+                                    </span>
+                                  )}
+                                  <span>
+                                    Email: <strong className="text-foreground/80">{profile.email}</strong>
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setSelectedProfileForPassword(profile)}
+                                  className="h-8 text-xs font-bold border-white/10 hover:bg-white/5 gap-1.5 rounded-xl"
+                                >
+                                  <KeyRound className="h-3.5 w-3.5 text-primary" />
+                                  <span className="hidden sm:inline">Change Password</span>
+                                </Button>
+                                {profile.role !== "admin" && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => toggleProfileExpanded(profile.id)}
+                                    className="h-8 text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-white/5 gap-1.5 rounded-xl"
+                                  >
+                                    {isExpanded ? (
+                                      <>
+                                        <ChevronUp className="h-4 w-4" />
+                                        <span className="hidden sm:inline">Hide Attempts</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <ChevronDown className="h-4 w-4" />
+                                        <span className="hidden sm:inline">View Attempts ({userAttempts.length})</span>
+                                      </>
+                                    )}
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Expanded section: test attempts history */}
+                            {isExpanded && profile.role !== "admin" && (
+                              <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: "auto" }}
+                                className="mt-4 pt-4 border-t border-white/[0.04] space-y-3"
+                              >
+                                <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60 mb-2">Test Attempts History</p>
+                                {userAttempts.length === 0 ? (
+                                  <p className="text-xs text-muted-foreground italic">No tests taken yet.</p>
+                                ) : (
+                                  <div className="grid gap-2">
+                                    {userAttempts.map((attempt) => {
+                                      const testItem = tests.find((t) => t.id === attempt.test_id);
+                                      const testTitle = testItem ? testItem.title : "Unknown Test";
+                                      const isSubmitted = attempt.status === "submitted";
+
+                                      return (
+                                        <div
+                                          key={attempt.id}
+                                          className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-xl bg-white/[0.02] border border-white/[0.04]"
+                                        >
+                                          <div className="min-w-0">
+                                            <p className="font-bold text-sm truncate text-foreground/90">
+                                              {testTitle}
+                                            </p>
+                                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-[11px] text-muted-foreground">
+                                              <span className="flex items-center gap-1">
+                                                <Calendar className="h-3 w-3" />
+                                                {new Date(attempt.started_at).toLocaleDateString()}
+                                              </span>
+                                              <span className="flex items-center gap-1">
+                                                <Clock className="h-3 w-3" />
+                                                {formatDuration(attempt.total_time_seconds)}
+                                              </span>
+                                            </div>
+                                          </div>
+
+                                          <div className="flex items-center gap-3 self-end sm:self-center">
+                                            <Badge
+                                              variant={isSubmitted ? "success" : "warning"}
+                                              className="h-5 text-[9px] uppercase tracking-tighter font-semibold"
+                                            >
+                                              {attempt.status}
+                                            </Badge>
+                                            <div className="flex items-center gap-1 text-xs font-bold">
+                                              <Award className="h-3.5 w-3.5 text-primary" />
+                                              <span className="gradient-text font-black">
+                                                {attempt.total_score !== null ? `${attempt.total_score} / ${attempt.max_score}` : "—"}
+                                              </span>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </motion.div>
+                            )}
+                          </div>
+                        </motion.li>
+                      );
+                    })}
+                  </motion.ul>
+                )}
+              </motion.div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -361,6 +570,105 @@ export function AdminDashboardClient({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Change Password Dialog */}
+      <Dialog
+        open={!!selectedProfileForPassword}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedProfileForPassword(null);
+            setNewPassword("");
+          }
+        }}
+      >
+        <DialogContent className="glass-strong">
+          <DialogHeader>
+            <DialogTitle className="font-black text-lg">Change User Password</DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              Enter a new password for <strong className="text-foreground">{selectedProfileForPassword?.full_name || selectedProfileForPassword?.username || selectedProfileForPassword?.email}</strong>. The password must be at least 6 characters.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (!selectedProfileForPassword) return;
+              if (newPassword.length < 6) {
+                toast({
+                  title: "Validation error",
+                  description: "Password must be at least 6 characters.",
+                  variant: "destructive",
+                });
+                return;
+              }
+              setIsUpdatingPassword(true);
+              try {
+                const res = await changeUserPassword(selectedProfileForPassword.id, newPassword);
+                if (res.ok) {
+                  toast({
+                    title: "Password updated",
+                    description: `Successfully updated password for ${selectedProfileForPassword.full_name || selectedProfileForPassword.username || selectedProfileForPassword.email}`,
+                  });
+                  setSelectedProfileForPassword(null);
+                  setNewPassword("");
+                  router.refresh();
+                } else {
+                  toast({
+                    title: "Error",
+                    description: res.error || "Failed to update password",
+                    variant: "destructive",
+                  });
+                }
+              } catch (err) {
+                toast({
+                  title: "Error",
+                  description: "An unexpected error occurred",
+                  variant: "destructive",
+                });
+              } finally {
+                setIsUpdatingPassword(false);
+              }
+            }}
+            className="space-y-4 mt-2"
+          >
+            <div className="space-y-2">
+              <Label htmlFor="new-user-password">New Password</Label>
+              <Input
+                id="new-user-password"
+                type="password"
+                required
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="••••••••"
+                className="bg-black/20"
+                minLength={6}
+              />
+            </div>
+
+            <DialogFooter className="mt-4 gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isUpdatingPassword}
+                onClick={() => {
+                  setSelectedProfileForPassword(null);
+                  setNewPassword("");
+                }}
+                className="border-white/10 hover:bg-white/5"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isUpdatingPassword}
+                className="shine-btn font-bold"
+              >
+                {isUpdatingPassword ? "Updating..." : "Update Password"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
