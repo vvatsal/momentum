@@ -309,3 +309,26 @@ export async function listResponsesForTest(
 
   return responses ?? [];
 }
+
+export async function listProfilesForAdmin(
+  supabase: unknown
+): Promise<Profile[]> {
+  const client = supabase as {
+    from(table: "profiles"): {
+      select(columns: string): {
+        order(
+          column: string,
+          options: { ascending: boolean }
+        ): Promise<{ data: Profile[] | null; error: { message: string } | null }>;
+      };
+    };
+  };
+
+  const { data, error } = await client
+    .from("profiles")
+    .select("id, email, full_name, role, username, created_at")
+    .order("created_at", { ascending: false });
+
+  if (error || !data) return [];
+  return data;
+}

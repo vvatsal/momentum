@@ -54,7 +54,12 @@ export default async function TestReportsPage({
           </Button>
           <Button size="sm" asChild>
             <a href={`/admin/tests/${test.id}/export`} download>
-              Download CSV
+              Download Attempts CSV
+            </a>
+          </Button>
+          <Button size="sm" variant="outline" asChild>
+            <a href={`/admin/tests/${test.id}/export?type=responses`} download>
+              Download Responses CSV
             </a>
           </Button>
         </div>
