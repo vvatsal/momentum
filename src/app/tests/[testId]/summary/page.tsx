@@ -74,6 +74,7 @@ export default async function TestSummaryPage({
               {questions.map((q, i) => {
                 const r = responses.find((x) => x.question_id === q.id);
                 const correct = r?.is_correct;
+                const timeSpent = r?.time_spent_seconds ? formatDuration(r.time_spent_seconds) : "0:00";
                 return (
                   <li
                     key={q.id}
@@ -85,17 +86,22 @@ export default async function TestSummaryPage({
                       </span>{" "}
                       {q.question_text}
                     </span>
-                    <span
-                      className={`shrink-0 text-xs font-semibold tabular-nums ${correct
-                        ? "text-emerald-400"
-                        : r?.status === "skipped"
-                          ? "text-amber-400"
-                          : "text-red-400"
-                        }`}
-                    >
-                      {correct ? "✓" : r?.status === "skipped" ? "—" : "✗"}{" "}
-                      {r?.awarded_marks ?? 0}/{q.marks}
-                    </span>
+                    <div className="flex flex-col items-end shrink-0">
+                      <span
+                        className={`text-xs font-semibold tabular-nums ${correct
+                          ? "text-emerald-400"
+                          : r?.status === "skipped"
+                            ? "text-amber-400"
+                            : "text-red-400"
+                          }`}
+                      >
+                        {correct ? "✓" : r?.status === "skipped" ? "—" : "✗"}{" "}
+                        {r?.awarded_marks ?? 0}/{q.marks}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground font-mono mt-0.5">
+                        {timeSpent}
+                      </span>
+                    </div>
                   </li>
                 );
               })}

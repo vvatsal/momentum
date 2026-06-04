@@ -113,7 +113,9 @@ export function TestTakingClient({ initial, userRole }: Props) {
       const r = responses.find((x) => x.question_id === questionId);
       const q = questions.find((x) => x.id === questionId);
       if (!r || !q) return;
-      if (q.type === "mcq") {
+
+      // Fix: Support both mcq and msq types when loading local answer state
+      if (q.type === "mcq" || q.type === "msq") {
         let selected: string[] = [];
         if (r.selected_option) {
           try {
@@ -155,22 +157,32 @@ export function TestTakingClient({ initial, userRole }: Props) {
     []
   );
 
+  // Fix: Correctly handles clearing of answers by returning status "unanswered" and null values
   const buildLeaveAnswer = useCallback((): LeaveAnswer | undefined => {
     const q = questions.find((x) => x.id === currentId);
     if (!q) return undefined;
 
-    if ((q.type === "mcq" || q.type === "msq") && mcqSelections.length > 0) {
-      return { status: "answered", selectedOption: JSON.stringify(mcqSelections) };
-    }
-    if (q.type === "numeric" && numericInput.trim()) {
-      if (!isValidNumericInput(numericInput)) {
-        setNumericError("Enter a valid number (e.g. 3.14)");
-        return undefined;
+    if (q.type === "mcq" || q.type === "msq") {
+      if (mcqSelections.length > 0) {
+        return { status: "answered", selectedOption: JSON.stringify(mcqSelections) };
+      } else {
+        return { status: "unanswered", selectedOption: null };
       }
-      return {
-        status: "answered",
-        numericAnswer: parseNumericInput(numericInput),
-      };
+    }
+    if (q.type === "numeric") {
+      const trimmed = numericInput.trim();
+      if (trimmed) {
+        if (!isValidNumericInput(trimmed)) {
+          setNumericError("Enter a valid number (e.g. 3.14)");
+          return undefined;
+        }
+        return {
+          status: "answered",
+          numericAnswer: parseNumericInput(trimmed),
+        };
+      } else {
+        return { status: "unanswered", numericAnswer: null };
+      }
     }
     return undefined;
   }, [currentId, mcqSelections, numericInput, questions]);
@@ -281,69 +293,13 @@ export function TestTakingClient({ initial, userRole }: Props) {
     return () => window.clearInterval(id);
   }, [attemptId, consumeDelta, currentId]);
 
-  const handleSaveAndNext = async () => {
-    const q = currentQuestion;
-    if (!q) return;
-
-    let leave: LeaveAnswer | undefined;
-    if (q.type === "mcq" || q.type === "msq") {
-      if (mcqSelections.length === 0) {
-        setError("Select at least one option or tap Skip");
-        return;
-      }
-      leave = { status: "answered", selectedOption: JSON.stringify(mcqSelections) };
-    } else {
-      if (!numericInput.trim()) {
-        setError("Enter an answer or tap Skip");
-        return;
-      }
-      if (!isValidNumericInput(numericInput)) {
-        setNumericError("Enter a valid number (e.g. 3.14)");
-        return;
-      }
-      leave = {
-        status: "answered",
-        numericAnswer: parseNumericInput(numericInput),
-      };
-    }
-
-    const next = questions[currentIndex + 1];
-    if (next) {
-      await navigateTo(next.id, leave);
-    } else {
-      const delta = consumeDelta();
-      applyLocalResponse(currentId, {
-        status: leave.status,
-        selected_option: leave.selectedOption ?? null,
-        numeric_answer: leave.numericAnswer ?? null,
-        time_spent_seconds:
-          (responses.find((r) => r.question_id === currentId)
-            ?.time_spent_seconds ?? 0) + delta,
-      });
-      void runSync(currentId, currentId, delta, leave);
-    }
-  };
-
-  const handleSkip = async () => {
-    const next = questions[currentIndex + 1];
-    const leave: LeaveAnswer = { status: "skipped" };
-    if (next) {
-      await navigateTo(next.id, leave);
-    } else {
-      const delta = consumeDelta();
-      applyLocalResponse(currentId, {
-        status: "skipped", time_spent_seconds:
-          (responses.find((r) => r.question_id === currentId)?.time_spent_seconds ?? 0) + delta
-      });
-      void runSync(currentId, currentId, delta, leave);
-    }
-  };
-
-  const handleExit = async () => {
+  const handlePause = async () => {
+    setPendingPause(true);
     const delta = consumeDelta();
     const leave = buildLeaveAnswer();
-    void runSync(currentId, currentId, delta, leave);
-    router.push(`/tests/${testId}`);
+    await runSync(currentId, currentId, delta, leave);
+    setPendingPause(false);
+    router.push(isAdmin ? "/admin" : "/dashboard");
   };
 
   const handleFinalSubmit = async () => {
@@ -363,12 +319,14 @@ export function TestTakingClient({ initial, userRole }: Props) {
     router.refresh();
   };
 
+  const [pendingPause, setPendingPause] = useState(false);
+
   if (!currentQuestion) {
     return <p className="p-4 text-sm text-muted-foreground">No questions.</p>;
   }
 
   return (
-    <div className="flex min-h-dvh flex-col pb-32">
+    <div className="flex min-h-dvh flex-col pb-36">
       <header className="sticky top-0 z-40 border-b border-white/[0.06] glass backdrop-blur-2xl">
         <div className="mx-auto max-w-lg px-4 py-4">
           <div className="flex items-center justify-between gap-4 mb-4">
@@ -769,33 +727,51 @@ export function TestTakingClient({ initial, userRole }: Props) {
         </div>
       </main>
 
+      {/* Simplified controls footer: Previous/Next navigation and Pause/Submit test actions */}
       <footer className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/[0.08] glass p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <div className="mx-auto flex max-w-lg flex-col gap-3">
           <div className="grid grid-cols-2 gap-3">
-            <Button type="button" variant="outline" onClick={handleSkip} size="lg" className="h-12 rounded-2xl font-bold border-white/10 hover:bg-white/5">
-              Skip Question
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigateTo(questions[currentIndex - 1].id)}
+              disabled={currentIndex === 0 || pendingPause || submitting}
+              size="lg"
+              className="h-12 rounded-2xl font-bold border-white/10 hover:bg-white/5"
+            >
+              ← Previous
             </Button>
             <Button
               type="button"
-              onClick={handleSaveAndNext}
+              variant="outline"
+              onClick={() => navigateTo(questions[currentIndex + 1].id)}
+              disabled={currentIndex === questions.length - 1 || pendingPause || submitting}
               size="lg"
-              className="h-12 rounded-2xl font-bold shine-btn"
+              className="h-12 rounded-2xl font-bold border-white/10 hover:bg-white/5"
             >
-              {currentIndex < questions.length - 1 ? "Next Question" : "Save Answer"}
+              Next →
             </Button>
           </div>
-          <div className="flex items-center justify-between gap-4 px-1">
-            <Button type="button" variant="ghost" onClick={handleExit} size="sm" className="text-muted-foreground hover:text-foreground font-bold text-xs uppercase tracking-widest">
-              Exit Test
-            </Button>
+          <div className="grid grid-cols-2 gap-3 pt-1">
             <Button
               type="button"
               variant="secondary"
-              onClick={() => setSubmitOpen(true)}
-              size="sm"
-              className="h-8 rounded-xl px-4 text-[10px] font-black uppercase tracking-widest border border-white/5"
+              onClick={handlePause}
+              disabled={pendingPause || submitting}
+              size="lg"
+              className="h-12 rounded-2xl font-bold border border-white/5 gap-2"
             >
-              Finish & Submit
+              {pendingPause && <Loader2 className="h-4 w-4 animate-spin" />}
+              Pause Test
+            </Button>
+            <Button
+              type="button"
+              onClick={() => setSubmitOpen(true)}
+              disabled={pendingPause || submitting}
+              size="lg"
+              className="h-12 rounded-2xl font-bold shine-btn"
+            >
+              Submit Test
             </Button>
           </div>
         </div>

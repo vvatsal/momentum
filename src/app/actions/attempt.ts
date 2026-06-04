@@ -330,6 +330,11 @@ export async function finalSubmit(input: { attemptId: string }) {
       }
     }
 
+    const totalTimeSeconds = (responses || []).reduce(
+      (acc, r) => acc + (Number(r.time_spent_seconds) || 0),
+      0
+    );
+
     await supabase
       .from("attempts")
       .update({
@@ -337,6 +342,7 @@ export async function finalSubmit(input: { attemptId: string }) {
         submitted_at: new Date().toISOString(),
         total_score: totalScore,
         max_score: maxScore,
+        total_time_seconds: totalTimeSeconds,
       })
       .eq("id", attemptId);
 

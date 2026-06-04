@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle2, XCircle, HelpCircle } from "lucide-react";
 import type { McqCorrectAnswer, NumericCorrectAnswer } from "@/types/database";
+import { formatDuration } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -143,7 +144,12 @@ export default async function TestReviewPage({
                                         </div>
                                     )}
 
-                                    <div className="flex justify-end">
+                                    <div className="flex justify-end gap-2">
+                                        {r?.time_spent_seconds != null && (
+                                            <span className="text-xs font-medium px-2 py-1 rounded bg-muted font-mono">
+                                                Time: {formatDuration(r.time_spent_seconds)}
+                                            </span>
+                                        )}
                                         <span className="text-xs font-medium px-2 py-1 rounded bg-muted">
                                             Marks: {r?.awarded_marks ?? 0} / {q.marks}
                                         </span>
