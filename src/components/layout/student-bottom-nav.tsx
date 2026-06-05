@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, useReducedMotion } from "framer-motion";
-import { BookOpen, Home } from "lucide-react";
+import { BookOpen, Home, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const links = [
   { href: "/dashboard", label: "Home", icon: Home },
+  { href: "/profile", label: "Profile", icon: User },
 ];
 
 export function StudentBottomNav() {
