@@ -371,3 +371,28 @@ export async function listAllAttemptsForAdmin(
   return data;
 }
 
+export async function getTestVisibilityForAdmin(
+  supabase: unknown,
+  testId: string
+): Promise<string[]> {
+  const client = supabase as {
+    from(table: "test_visibility"): {
+      select(columns: string): {
+        eq(
+          column: string,
+          value: string
+        ): Promise<{ data: { student_id: string }[] | null; error: { message: string } | null }>;
+      };
+    };
+  };
+
+  const { data, error } = await client
+    .from("test_visibility")
+    .select("student_id")
+    .eq("test_id", testId);
+
+  if (error || !data) return [];
+  return data.map((d) => d.student_id);
+}
+
+

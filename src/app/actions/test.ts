@@ -493,3 +493,42 @@ async function nextQuestionIndex(
   if (!data?.length) return 0;
   return (data[0] as Pick<Question, "order_index">).order_index + 1;
 }
+
+export async function updateTestVisibility(testId: string, studentIds: string[]): Promise<ActionResult> {
+  try {
+    await requireAdmin();
+    const supabaseAdmin = createAdminClient();
+
+    // Delete existing
+    const { error: deleteError } = await supabaseAdmin
+      .from("test_visibility")
+      .delete()
+      .eq("test_id", testId);
+
+    if (deleteError) {
+      return { ok: false, error: deleteError.message };
+    }
+
+    if (studentIds.length > 0) {
+      const records = studentIds.map((studentId) => ({
+        test_id: testId,
+        student_id: studentId,
+      }));
+
+      const { error: insertError } = await supabaseAdmin
+        .from("test_visibility")
+        .insert(records);
+
+      if (insertError) {
+        return { ok: false, error: insertError.message };
+      }
+    }
+
+    revalidatePath("/dashboard");
+    revalidatePath(`/admin/tests/${testId}`);
+    return { ok: true };
+  } catch (err: any) {
+    return { ok: false, error: err.message || "An unexpected error occurred" };
+  }
+}
+

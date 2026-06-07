@@ -35,10 +35,26 @@ export async function notifyStudentsTestPublished(
   const resendConfig = getResendConfig();
   const admin = createAdminClient();
 
+  const { data: visibilityRecords, error: visError } = await admin
+    .from("test_visibility")
+    .select("student_id")
+    .eq("test_id", testId);
+
+  if (visError || !visibilityRecords?.length) {
+    return {
+      sent: 0,
+      failed: 0,
+      skipped: true,
+      message: visError?.message ?? "No assigned students to notify",
+    };
+  }
+
+  const assignedStudentIds = visibilityRecords.map((r) => r.student_id);
+
   const { data: students, error } = await admin
     .from("profiles")
     .select("email")
-    .eq("role", "student");
+    .in("id", assignedStudentIds);
 
   if (error || !students?.length) {
     return {

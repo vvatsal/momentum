@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
-import { LogOut, Zap } from "lucide-react";
+import { LogOut, Zap, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { signOut } from "@/app/actions/auth";
 import { fadeUp } from "@/lib/motion";
@@ -49,17 +49,30 @@ export function AppHeader({ title, subtitle, homeHref }: AppHeaderProps) {
             )}
           </div>
         </div>
-        <form action={signOut}>
+        <div className="flex items-center gap-1.5">
           <Button
-            type="submit"
             variant="ghost"
             size="icon"
+            asChild
             className="h-9 w-9 rounded-xl text-muted-foreground hover:bg-white/5 hover:text-foreground transition-all"
-            aria-label="Sign out"
+            aria-label="Profile"
           >
-            <LogOut className="h-4 w-4" />
+            <Link href="/profile">
+              <User className="h-4 w-4" />
+            </Link>
           </Button>
-        </form>
+          <form action={signOut}>
+            <Button
+              type="submit"
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 rounded-xl text-muted-foreground hover:bg-white/5 hover:text-foreground transition-all"
+              aria-label="Sign out"
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </form>
+        </div>
       </div>
     </motion.header>
   );

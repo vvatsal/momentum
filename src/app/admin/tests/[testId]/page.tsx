@@ -2,9 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireProfile } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import {
   getTestForAdmin,
   listQuestionsForTest,
+  listProfilesForAdmin,
+  getTestVisibilityForAdmin,
 } from "@/lib/supabase/queries";
 import { AppHeader } from "@/components/layout/app-header";
 import { PageShell } from "@/components/layout/page-shell";
@@ -28,12 +31,18 @@ export default async function EditTestPage({
   params: { testId: string };
 }) {
   await requireProfile("admin");
-  const supabase = await createClient();
-  const test = await getTestForAdmin(supabase, params.testId);
+  const supabaseAdmin = createAdminClient();
+  const test = await getTestForAdmin(supabaseAdmin, params.testId);
 
   if (!test) notFound();
 
-  const questions = await listQuestionsForTest(supabase, params.testId);
+  const [questions, allProfiles, visibility] = await Promise.all([
+    listQuestionsForTest(supabaseAdmin, params.testId),
+    listProfilesForAdmin(supabaseAdmin),
+    getTestVisibilityForAdmin(supabaseAdmin, params.testId),
+  ]);
+
+  const students = allProfiles.filter((p) => p.role === "student");
 
   return (
     <PageShell noPadding>
@@ -86,6 +95,8 @@ export default async function EditTestPage({
               status={test.status}
               questionCount={test.question_count}
               isLocked={test.is_locked}
+              students={students}
+              initialSelectedStudentIds={visibility}
             />
           </CardContent>
         </Card>
