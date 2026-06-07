@@ -9,14 +9,17 @@ import { PageShell } from "@/components/layout/page-shell";
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboardPage() {
-  const profile = await requireProfile("admin");
+  const profile = await requireProfile("admin-or-teacher");
   const supabaseAdmin = createAdminClient();
 
+  const isTeacher = profile.role === "teacher";
+  const teacherId = isTeacher ? profile.id : undefined;
+
   const [studentCount, tests, profiles, attempts] = await Promise.all([
-    countStudents(supabaseAdmin),
-    listTestsForAdmin(supabaseAdmin),
-    listProfilesForAdmin(supabaseAdmin),
-    listAllAttemptsForAdmin(supabaseAdmin),
+    countStudents(supabaseAdmin, teacherId),
+    listTestsForAdmin(supabaseAdmin, teacherId),
+    listProfilesForAdmin(supabaseAdmin, teacherId),
+    listAllAttemptsForAdmin(supabaseAdmin, teacherId),
   ]);
 
   return (
@@ -28,6 +31,7 @@ export default async function AdminDashboardPage() {
       />
       <div className="mx-auto max-w-lg px-4 py-6 sm:max-w-2xl lg:max-w-4xl">
         <AdminDashboardClient
+          profile={profile}
           studentCount={studentCount}
           tests={tests}
           profiles={profiles}

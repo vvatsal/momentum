@@ -70,11 +70,11 @@ export async function startOrResumeAttempt(testId: string, forceNew = false): Pr
     redirect("/login");
   }
 
-  if (role !== "student" && role !== "admin") {
+  const isAdmin = role === "superadmin" || role === "teacher" || role === "admin";
+
+  if (role !== "student" && !isAdmin) {
     redirect("/login");
   }
-
-  const isAdmin = role === "admin";
 
   const selectFields = isAdmin
     ? "id, test_id, order_index, type, question_text, image_url, marks, options, correct_answer, numeric_tolerance"

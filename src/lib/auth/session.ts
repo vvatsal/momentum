@@ -22,11 +22,19 @@ export async function getProfile(): Promise<Profile | null> {
   return getProfileByUserId(asProfileClient(supabase), user.id);
 }
 
-export async function requireProfile(role?: "admin" | "student") {
+export async function requireProfile(role?: "superadmin" | "teacher" | "student" | "admin-or-teacher" | "admin") {
   const profile = await getProfile();
   if (!profile) redirect("/login");
-  if (role && profile.role !== role) {
-    redirect(profile.role === "admin" ? "/admin" : "/dashboard");
+  if (role) {
+    const isAuthorized =
+      (role === "admin-or-teacher" || role === "admin")
+        ? (profile.role === "superadmin" || profile.role === "teacher" || profile.role === "admin")
+        : profile.role === role;
+
+    if (!isAuthorized) {
+      const isPrivileged = profile.role === "superadmin" || profile.role === "teacher" || profile.role === "admin";
+      redirect(isPrivileged ? "/admin" : "/dashboard");
+    }
   }
   return profile;
 }
