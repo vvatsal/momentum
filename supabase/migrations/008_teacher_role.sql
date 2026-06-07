@@ -262,3 +262,6 @@ CREATE POLICY "Teacher read own test email log" ON public.email_notifications_lo
       WHERE t.id = email_notifications_log.test_id AND t.created_by = auth.uid()
     )
   );
+
+-- Notify PostgREST to reload the schema cache immediately
+SELECT pg_notify('pgrst', 'reload schema');
