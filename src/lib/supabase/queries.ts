@@ -58,23 +58,33 @@ type TestsStudentQuery = {
   };
 };
 
-export async function countStudents(supabase: unknown): Promise<number> {
-  const client = supabase as ProfilesCountQuery;
-  const { count, error } = await client
+export async function countStudents(supabase: unknown, teacherId?: string): Promise<number> {
+  const client = supabase as any;
+  let query = client
     .from("profiles")
     .select("*", { count: "exact", head: true })
     .eq("role", "student");
 
+  if (teacherId) {
+    query = query.eq("created_by", teacherId);
+  }
+
+  const { count, error } = await query;
   if (error) return 0;
   return count ?? 0;
 }
 
-export async function listTestsForAdmin(supabase: unknown): Promise<TestListItem[]> {
-  const client = supabase as TestsAdminQuery;
-  const { data, error } = await client
+export async function listTestsForAdmin(supabase: unknown, teacherId?: string): Promise<TestListItem[]> {
+  const client = supabase as any;
+  let query = client
     .from("tests")
-    .select("id, title, status, created_at")
-    .order("created_at", { ascending: false });
+    .select("id, title, status, created_at");
+
+  if (teacherId) {
+    query = query.eq("created_by", teacherId);
+  }
+
+  const { data, error } = await query.order("created_at", { ascending: false });
 
   if (error || !data) return [];
   return data;
@@ -235,6 +245,7 @@ export async function listAttemptsForTest(
     return {
       ...attempt,
       student: {
+        id: p?.id ?? attempt.student_id,
         email: p?.email ?? "",
         full_name: p?.full_name ?? null,
       },
@@ -279,20 +290,7 @@ export async function listResponsesForTest(
   supabase: unknown,
   testId: string
 ) {
-  const client = supabase as {
-    from(table: "responses"): {
-      select(columns: string): {
-        in(column: string, values: string[]): Promise<{
-          data: { question_id: string; is_correct: boolean | null; awarded_marks: number | null }[] | null;
-        }>;
-      };
-    };
-    from(table: "attempts"): {
-      select(columns: string): {
-        eq(column: string, value: string): Promise<{ data: { id: string }[] | null }>;
-      };
-    };
-  };
+  const client = supabase as any;
 
   const { data: attempts } = await client
     .from("attempts")
@@ -301,33 +299,29 @@ export async function listResponsesForTest(
 
   if (!attempts?.length) return [];
 
-  const attemptIds = attempts.map((a) => a.id);
+  const attemptIds = attempts.map((a: any) => a.id);
   const { data: responses } = await client
     .from("responses")
-    .select("question_id, is_correct, awarded_marks")
+    .select("attempt_id, question_id, is_correct, awarded_marks, time_spent_seconds, selected_option, numeric_answer, status")
     .in("attempt_id", attemptIds);
 
   return responses ?? [];
 }
 
 export async function listProfilesForAdmin(
-  supabase: unknown
+  supabase: unknown,
+  teacherId?: string
 ): Promise<Profile[]> {
-  const client = supabase as {
-    from(table: "profiles"): {
-      select(columns: string): {
-        order(
-          column: string,
-          options: { ascending: boolean }
-        ): Promise<{ data: any[] | null; error: { message: string } | null }>;
-      };
-    };
-  };
-
-  const { data, error } = await client
+  const client = supabase as any;
+  let query = client
     .from("profiles")
-    .select("id, email, full_name, role, created_at, updated_at")
-    .order("created_at", { ascending: false });
+    .select("id, email, full_name, role, created_by, created_at, updated_at");
+
+  if (teacherId) {
+    query = query.or(`created_by.eq.${teacherId},id.eq.${teacherId}`);
+  }
+
+  const { data, error } = await query.order("created_at", { ascending: false });
 
   if (error || !data) {
     if (error) {
@@ -336,7 +330,7 @@ export async function listProfilesForAdmin(
     return [];
   }
 
-  return data.map((p) => {
+  return data.map((p: any) => {
     let username = null;
     if (p.email) {
       username = p.email.split("@")[0];
@@ -349,26 +343,40 @@ export async function listProfilesForAdmin(
 }
 
 export async function listAllAttemptsForAdmin(
-  supabase: unknown
+  supabase: unknown,
+  teacherId?: string
 ): Promise<Attempt[]> {
-  const client = supabase as {
-    from(table: "attempts"): {
-      select(columns: string): {
-        order(
-          column: string,
-          options: { ascending: boolean }
-        ): Promise<{ data: Attempt[] | null; error: { message: string } | null }>;
-      };
-    };
-  };
+  const client = supabase as any;
 
-  const { data, error } = await client
-    .from("attempts")
-    .select("*")
-    .order("started_at", { ascending: false });
+  if (teacherId) {
+    // 1. Get student profiles created by this teacher
+    const { data: students, error: studentError } = await client
+      .from("profiles")
+      .select("id")
+      .eq("created_by", teacherId);
 
-  if (error || !data) return [];
-  return data;
+    if (studentError || !students?.length) return [];
+
+    const studentIds = students.map((s: any) => s.id);
+
+    // 2. Get attempts for those students
+    const { data, error } = await client
+      .from("attempts")
+      .select("*")
+      .in("student_id", studentIds)
+      .order("started_at", { ascending: false });
+
+    if (error || !data) return [];
+    return data;
+  } else {
+    const { data, error } = await client
+      .from("attempts")
+      .select("*")
+      .order("started_at", { ascending: false });
+
+    if (error || !data) return [];
+    return data;
+  }
 }
 
 export async function getTestVisibilityForAdmin(

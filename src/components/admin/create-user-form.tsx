@@ -11,7 +11,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Loader2, UserPlus } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
-export function CreateUserForm() {
+import { UserRole } from "@/types/database";
+
+export function CreateUserForm({ currentUserRole = "student" }: { currentUserRole?: UserRole }) {
     const router = useRouter();
     const { toast } = useToast();
     const [loading, setLoading] = useState(false);
@@ -21,7 +23,7 @@ export function CreateUserForm() {
         firstName: "",
         lastName: "",
         email: "",
-        role: "student" as "admin" | "student",
+        role: "student" as UserRole,
     });
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -70,7 +72,9 @@ export function CreateUserForm() {
                     Create New User
                 </CardTitle>
                 <CardDescription>
-                    Add a new student or administrator to the platform.
+                    {currentUserRole === "teacher"
+                        ? "Add a new student to the platform."
+                        : "Add a new student, teacher, or administrator to the platform."}
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -137,21 +141,24 @@ export function CreateUserForm() {
                         />
                     </div>
 
-                    <div className="space-y-2">
-                        <Label htmlFor="role">Role</Label>
-                        <Select
-                            value={formData.role}
-                            onValueChange={(val: "admin" | "student") => setFormData({ ...formData, role: val })}
-                        >
-                            <SelectTrigger className="bg-black/20">
-                                <SelectValue placeholder="Select a role" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="student">Student</SelectItem>
-                                <SelectItem value="admin">Administrator</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
+                    {currentUserRole !== "teacher" && (
+                        <div className="space-y-2">
+                            <Label htmlFor="role">Role</Label>
+                            <Select
+                                value={formData.role}
+                                onValueChange={(val: UserRole) => setFormData({ ...formData, role: val })}
+                            >
+                                <SelectTrigger className="bg-black/20">
+                                    <SelectValue placeholder="Select a role" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="student">Student</SelectItem>
+                                    <SelectItem value="teacher">Teacher</SelectItem>
+                                    <SelectItem value="superadmin">Superadmin</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
 
                     <Button type="submit" className="w-full shine-btn" disabled={loading}>
                         {loading ? (

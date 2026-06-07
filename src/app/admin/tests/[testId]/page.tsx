@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { requireProfile } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -30,15 +30,22 @@ export default async function EditTestPage({
 }: {
   params: { testId: string };
 }) {
-  await requireProfile("admin");
+  const profile = await requireProfile("admin-or-teacher");
   const supabaseAdmin = createAdminClient();
   const test = await getTestForAdmin(supabaseAdmin, params.testId);
 
   if (!test) notFound();
 
+  // Teacher cannot edit tests created by others
+  if (profile.role === "teacher" && test.created_by !== profile.id) {
+    redirect("/admin");
+  }
+
+  const teacherId = profile.role === "teacher" ? profile.id : undefined;
+
   const [questions, allProfiles, visibility] = await Promise.all([
     listQuestionsForTest(supabaseAdmin, params.testId),
-    listProfilesForAdmin(supabaseAdmin),
+    listProfilesForAdmin(supabaseAdmin, teacherId),
     getTestVisibilityForAdmin(supabaseAdmin, params.testId),
   ]);
 

@@ -1,4 +1,4 @@
-export type UserRole = "admin" | "student";
+export type UserRole = "superadmin" | "teacher" | "student" | "admin";
 export type QuestionType = "mcq" | "msq" | "numeric";
 export type TestStatus = "draft" | "published" | "archived";
 export type AttemptStatus = "in_progress" | "submitted";
@@ -25,6 +25,7 @@ export interface Profile {
   username: string | null;
   full_name: string | null;
   role: UserRole;
+  created_by: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -126,6 +127,7 @@ export interface Database {
           username?: string | null;
           full_name?: string | null;
           role?: UserRole;
+          created_by?: string | null;
           created_at?: string;
           updated_at?: string;
         },

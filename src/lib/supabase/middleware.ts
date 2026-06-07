@@ -66,7 +66,7 @@ export async function updateSession(request: NextRequest) {
     }
 
     if (isAuthRoute || pathname === "/") {
-      if (role === "admin") {
+      if (role === "superadmin" || role === "teacher" || role === "admin") {
         return NextResponse.redirect(new URL("/admin", request.url));
       }
       if (role === "student") {
@@ -76,7 +76,7 @@ export async function updateSession(request: NextRequest) {
       return supabaseResponse;
     }
 
-    if (pathname.startsWith("/admin") && role !== "admin") {
+    if (pathname.startsWith("/admin") && role !== "superadmin" && role !== "teacher" && role !== "admin") {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
 
@@ -85,7 +85,7 @@ export async function updateSession(request: NextRequest) {
         pathname.startsWith("/tests")) &&
       role !== "student"
     ) {
-      if (role === "admin") {
+      if (role === "superadmin" || role === "teacher" || role === "admin") {
         return NextResponse.redirect(new URL("/admin", request.url));
       }
       return NextResponse.redirect(new URL("/login", request.url));

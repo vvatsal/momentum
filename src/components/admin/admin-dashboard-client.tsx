@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
-import { Plus, FileText, Copy, Check, Users, UploadCloud, Settings, Trash2, KeyRound, ChevronDown, ChevronUp, Calendar, Clock, Award } from "lucide-react";
+import { Plus, FileText, Copy, Check, Users, UploadCloud, Settings, Trash2, KeyRound, ChevronDown, ChevronUp, Calendar, Clock, Award, Edit } from "lucide-react";
 import { fadeUp, listItem, staggerContainer } from "@/lib/motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ import { useRouter } from "next/navigation";
 import { deleteTest } from "@/app/actions/test";
 import { CreateUserForm } from "./create-user-form";
 import { ChangePassword } from "../auth/change-password";
-import { changeUserPassword } from "@/app/actions/admin";
+import { changeUserPassword, deleteUser as deleteUserAction, updateUser as updateUserAction } from "@/app/actions/admin";
 import type { Profile, Attempt } from "@/types/database";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -43,11 +43,13 @@ type TestItem = {
 };
 
 export function AdminDashboardClient({
+  profile: currentProfile,
   studentCount,
   tests,
   profiles = [],
   attempts = [],
 }: {
+  profile: Profile;
   studentCount: number;
   tests: TestItem[];
   profiles?: Profile[];
@@ -67,6 +69,10 @@ export function AdminDashboardClient({
   const [newPassword, setNewPassword] = useState("");
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const [expandedProfiles, setExpandedProfiles] = useState<Record<string, boolean>>({});
+
+  const [userToEdit, setUserToEdit] = useState<Profile | null>(null);
+  const [editFormData, setEditFormData] = useState({ firstName: "", lastName: "", username: "" });
+  const [isEditingUser, setIsEditingUser] = useState(false);
 
   const toggleProfileExpanded = (profileId: string) => {
     setExpandedProfiles((prev) => ({
@@ -294,7 +300,7 @@ export function AdminDashboardClient({
                 initial="hidden"
                 animate="show"
               >
-                <CreateUserForm />
+                <CreateUserForm currentUserRole={currentProfile.role} />
               </motion.div>
             </div>
 
@@ -343,12 +349,20 @@ export function AdminDashboardClient({
                                     {profile.full_name || "No Name"}
                                   </span>
                                   <Badge
-                                    variant={profile.role === "admin" ? "default" : "secondary"}
+                                    variant={
+                                      profile.role === "superadmin" || profile.role === "admin"
+                                        ? "default"
+                                        : profile.role === "teacher"
+                                          ? "warning"
+                                          : "secondary"
+                                    }
                                     className={cn(
                                       "h-5 text-[10px] uppercase tracking-tighter font-semibold",
-                                      profile.role === "admin"
+                                      (profile.role === "superadmin" || profile.role === "admin")
                                         ? "bg-cyan-500/10 text-cyan-300 border border-cyan-500/20"
-                                        : "bg-primary/10 text-primary border border-primary/20"
+                                        : profile.role === "teacher"
+                                          ? "bg-amber-500/10 text-amber-300 border border-amber-500/20"
+                                          : "bg-primary/10 text-primary border border-primary/20"
                                     )}
                                   >
                                     {profile.role}
@@ -367,16 +381,72 @@ export function AdminDashboardClient({
                               </div>
 
                               <div className="flex items-center gap-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => setSelectedProfileForPassword(profile)}
-                                  className="h-8 text-xs font-bold border-white/10 hover:bg-white/5 gap-1.5 rounded-xl"
-                                >
-                                  <KeyRound className="h-3.5 w-3.5 text-primary" />
-                                  <span className="hidden sm:inline">Change Password</span>
-                                </Button>
-                                {profile.role !== "admin" && (
+                                {((currentProfile.role === "superadmin" || currentProfile.role === "admin") ||
+                                  (currentProfile.role === "teacher" && profile.created_by === currentProfile.id && profile.role === "student")) &&
+                                  profile.id !== currentProfile.id && (
+                                    <>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setSelectedProfileForPassword(profile)}
+                                        className="h-8 text-xs font-bold border-white/10 hover:bg-white/5 gap-1.5 rounded-xl"
+                                      >
+                                        <KeyRound className="h-3.5 w-3.5 text-primary" />
+                                        <span className="hidden sm:inline">Password</span>
+                                      </Button>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                          setUserToEdit(profile);
+                                          const names = (profile.full_name || "").split(" ");
+                                          setEditFormData({
+                                            firstName: names[0] || "",
+                                            lastName: names.slice(1).join(" ") || "",
+                                            username: profile.username || "",
+                                          });
+                                        }}
+                                        className="h-8 text-xs font-bold border-white/10 hover:bg-white/5 gap-1.5 rounded-xl"
+                                      >
+                                        <Edit className="h-3.5 w-3.5 text-primary" />
+                                        <span className="hidden sm:inline">Edit</span>
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={async () => {
+                                          if (confirm(`Are you sure you want to permanently delete user ${profile.full_name || profile.username || profile.email}? This will delete their profile and all test attempts. This cannot be undone.`)) {
+                                            try {
+                                              const res = await deleteUserAction(profile.id);
+                                              if (res.ok) {
+                                                toast({
+                                                  title: "User deleted",
+                                                  description: "Successfully deleted user profile.",
+                                                });
+                                                router.refresh();
+                                              } else {
+                                                toast({
+                                                  title: "Error",
+                                                  description: res.error || "Failed to delete user",
+                                                  variant: "destructive",
+                                                });
+                                              }
+                                            } catch (err) {
+                                              toast({
+                                                title: "Error",
+                                                description: "An unexpected error occurred",
+                                                variant: "destructive",
+                                              });
+                                            }
+                                          }
+                                        }}
+                                        className="h-8 w-8 text-destructive hover:text-red-400 hover:bg-red-500/10 rounded-xl"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </>
+                                  )}
+                                {profile.role === "student" && (
                                   <Button
                                     variant="ghost"
                                     size="sm"
@@ -400,7 +470,7 @@ export function AdminDashboardClient({
                             </div>
 
                             {/* Expanded section: test attempts history */}
-                            {isExpanded && profile.role !== "admin" && (
+                            {isExpanded && profile.role === "student" && (
                               <motion.div
                                 initial={{ opacity: 0, height: 0 }}
                                 animate={{ opacity: 1, height: "auto" }}
@@ -664,6 +734,117 @@ export function AdminDashboardClient({
                 className="shine-btn font-bold"
               >
                 {isUpdatingPassword ? "Updating..." : "Update Password"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit User Dialog */}
+      <Dialog
+        open={!!userToEdit}
+        onOpenChange={(open) => {
+          if (!open) {
+            setUserToEdit(null);
+          }
+        }}
+      >
+        <DialogContent className="glass-strong">
+          <DialogHeader>
+            <DialogTitle className="font-black text-lg">Edit User Details</DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              Update name and username details for <strong className="text-foreground">{userToEdit?.full_name || userToEdit?.email}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (!userToEdit) return;
+              setIsEditingUser(true);
+              try {
+                const res = await updateUserAction(userToEdit.id, editFormData);
+                if (res.ok) {
+                  toast({
+                    title: "User updated",
+                    description: `Successfully updated user details.`,
+                  });
+                  setUserToEdit(null);
+                  router.refresh();
+                } else {
+                  toast({
+                    title: "Error",
+                    description: res.error || "Failed to update user",
+                    variant: "destructive",
+                  });
+                }
+              } catch (err) {
+                toast({
+                  title: "Error",
+                  description: "An unexpected error occurred",
+                  variant: "destructive",
+                });
+              } finally {
+                setIsEditingUser(false);
+              }
+            }}
+            className="space-y-4 mt-2"
+          >
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-first-name">First Name</Label>
+                <Input
+                  id="edit-first-name"
+                  required
+                  value={editFormData.firstName}
+                  onChange={(e) => setEditFormData({ ...editFormData, firstName: e.target.value })}
+                  placeholder="John"
+                  className="bg-black/20"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-last-name">Last Name</Label>
+                <Input
+                  id="edit-last-name"
+                  required
+                  value={editFormData.lastName}
+                  onChange={(e) => setEditFormData({ ...editFormData, lastName: e.target.value })}
+                  placeholder="Doe"
+                  className="bg-black/20"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-username">Username</Label>
+              <Input
+                id="edit-username"
+                required
+                value={editFormData.username}
+                onChange={(e) => setEditFormData({ ...editFormData, username: e.target.value })}
+                placeholder="johndoe"
+                className="bg-black/20"
+              />
+            </div>
+
+            <DialogFooter className="mt-4 gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isEditingUser}
+                onClick={() => {
+                  setUserToEdit(null);
+                }}
+                className="border-white/10 hover:bg-white/5"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isEditingUser}
+                className="shine-btn font-bold"
+              >
+                {isEditingUser ? "Saving..." : "Save Changes"}
               </Button>
             </DialogFooter>
           </form>

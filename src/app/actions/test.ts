@@ -22,7 +22,7 @@ export type ActionResult<T = void> =
   | { ok: true; data?: T }
   | { ok: false; error: string };
 
-async function requireAdmin() {
+async function requireAdminOrCreator(testId?: string) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -35,8 +35,21 @@ async function requireAdmin() {
     .eq("id", user.id)
     .single();
 
-  if (profile?.role !== "admin") redirect("/dashboard");
-  return { supabase, userId: user.id };
+  const isAuthorized = profile?.role === "superadmin" || profile?.role === "teacher" || profile?.role === "admin";
+  if (!isAuthorized) redirect("/dashboard");
+
+  if (profile?.role === "teacher" && testId) {
+    const { data: test } = await supabase
+      .from("tests")
+      .select("created_by")
+      .eq("id", testId)
+      .single();
+    if (test && test.created_by !== user.id) {
+      throw new Error("Unauthorized access to test");
+    }
+  }
+
+  return { supabase, userId: user.id, role: profile.role };
 }
 
 function revalidateTest(testId: string) {
@@ -48,7 +61,7 @@ function revalidateTest(testId: string) {
 export async function createTest(
   formData: FormData
 ): Promise<ActionResult<{ testId: string }>> {
-  const { supabase, userId } = await requireAdmin();
+  const { supabase, userId } = await requireAdminOrCreator();
   const parsed = createTestSchema.safeParse({
     title: formData.get("title"),
   });
@@ -77,7 +90,6 @@ export async function createTest(
 export async function updateTestMetadata(
   input: unknown
 ): Promise<ActionResult> {
-  const { supabase } = await requireAdmin();
   const parsed = testMetadataSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: "Invalid test details" };
@@ -85,6 +97,8 @@ export async function updateTestMetadata(
 
   const { testId, title, description, instructions, duration_minutes, starts_at, ends_at } =
     parsed.data;
+
+  const { supabase } = await requireAdminOrCreator(testId);
 
   const { data: existing } = await supabase
     .from("tests")
@@ -117,7 +131,6 @@ export async function updateTestMetadata(
 }
 
 export async function saveMcqQuestion(input: unknown): Promise<ActionResult> {
-  const { supabase } = await requireAdmin();
   const parsed = mcqQuestionSchema.safeParse(input);
   if (!parsed.success) {
     const error = parsed.error.errors[0];
@@ -125,6 +138,7 @@ export async function saveMcqQuestion(input: unknown): Promise<ActionResult> {
   }
 
   const d = parsed.data;
+  const { supabase } = await requireAdminOrCreator(d.testId);
   if (!d.options.includes(d.correct_option)) {
     return { ok: false, error: "Correct option must be one of the choices" };
   }
@@ -165,7 +179,6 @@ export async function saveMcqQuestion(input: unknown): Promise<ActionResult> {
 }
 
 export async function saveMsqQuestion(input: unknown): Promise<ActionResult> {
-  const { supabase } = await requireAdmin();
   const parsed = msqQuestionSchema.safeParse(input);
   if (!parsed.success) {
     const error = parsed.error.errors[0];
@@ -173,6 +186,7 @@ export async function saveMsqQuestion(input: unknown): Promise<ActionResult> {
   }
 
   const d = parsed.data;
+  const { supabase } = await requireAdminOrCreator(d.testId);
   if (!d.correct_options.every((opt) => d.options.includes(opt))) {
     return { ok: false, error: "All correct options must be in the choices list" };
   }
@@ -213,7 +227,6 @@ export async function saveMsqQuestion(input: unknown): Promise<ActionResult> {
 }
 
 export async function saveNumericQuestion(input: unknown): Promise<ActionResult> {
-  const { supabase } = await requireAdmin();
   const parsed = numericQuestionSchema.safeParse(input);
   if (!parsed.success) {
     const error = parsed.error.errors[0];
@@ -221,6 +234,7 @@ export async function saveNumericQuestion(input: unknown): Promise<ActionResult>
   }
 
   const d = parsed.data;
+  const { supabase } = await requireAdminOrCreator(d.testId);
   const locked = await isTestLocked(supabase, d.testId);
   if (locked) return { ok: false, error: "Test is locked — cannot edit questions" };
 
@@ -257,13 +271,13 @@ export async function saveNumericQuestion(input: unknown): Promise<ActionResult>
 }
 
 export async function saveBulkQuestions(input: unknown): Promise<ActionResult> {
-  const { supabase } = await requireAdmin();
   const parsed = bulkQuestionsSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: "Invalid bulk questions data" };
   }
 
   const { testId, questions } = parsed.data;
+  const { supabase } = await requireAdminOrCreator(testId);
   const locked = await isTestLocked(supabase, testId);
   if (locked) return { ok: false, error: "Test is locked — cannot edit questions" };
 
@@ -314,11 +328,11 @@ export async function saveBulkQuestions(input: unknown): Promise<ActionResult> {
 }
 
 export async function deleteQuestion(input: unknown): Promise<ActionResult> {
-  const { supabase } = await requireAdmin();
   const parsed = deleteQuestionSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Invalid request" };
 
   const { testId, questionId } = parsed.data;
+  const { supabase } = await requireAdminOrCreator(testId);
   const locked = await isTestLocked(supabase, testId);
   if (locked) return { ok: false, error: "Test is locked — cannot delete questions" };
 
@@ -360,11 +374,11 @@ export async function deleteQuestion(input: unknown): Promise<ActionResult> {
 }
 
 export async function publishTest(input: unknown): Promise<ActionResult<{ email?: string }>> {
-  const { supabase } = await requireAdmin();
   const parsed = publishTestSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Invalid request" };
 
   const { testId, sendEmails } = parsed.data;
+  const { supabase } = await requireAdminOrCreator(testId);
 
   const { data: test } = await supabase
     .from("tests")
@@ -409,9 +423,11 @@ export async function publishTest(input: unknown): Promise<ActionResult<{ email?
 }
 
 export async function archiveTest(input: unknown): Promise<ActionResult> {
-  const { supabase } = await requireAdmin();
   const parsed = archiveTestSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Invalid request" };
+
+  const { testId } = parsed.data;
+  const { supabase } = await requireAdminOrCreator(testId);
 
   const { error } = await supabase
     .from("tests")
@@ -426,8 +442,8 @@ export async function archiveTest(input: unknown): Promise<ActionResult> {
 }
 
 export async function deleteTest(testId: string): Promise<ActionResult> {
-  // Verify the current user is authenticated as an admin
-  await requireAdmin();
+  // Verify the current user is authenticated and is admin or creator
+  const { role, userId } = await requireAdminOrCreator(testId);
 
   // Create a service role client that bypasses RLS policies
   const supabaseAdmin = createAdminClient();
@@ -496,8 +512,26 @@ async function nextQuestionIndex(
 
 export async function updateTestVisibility(testId: string, studentIds: string[]): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const { role, userId } = await requireAdminOrCreator(testId);
     const supabaseAdmin = createAdminClient();
+
+    // If teacher, check if all studentIds were created by them
+    if (role === "teacher" && studentIds.length > 0) {
+      const { data: students, error: studentCheckError } = await supabaseAdmin
+        .from("profiles")
+        .select("id")
+        .eq("created_by", userId)
+        .in("id", studentIds);
+
+      if (studentCheckError) {
+        return { ok: false, error: studentCheckError.message };
+      }
+
+      const validCount = students?.length ?? 0;
+      if (validCount !== studentIds.length) {
+        return { ok: false, error: "Cannot assign tests to students not created by you" };
+      }
+    }
 
     // Delete existing
     const { error: deleteError } = await supabaseAdmin
