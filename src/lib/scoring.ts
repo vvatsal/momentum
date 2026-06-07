@@ -70,7 +70,8 @@ export function parseNumericInput(raw: string): number | null {
 export function isValidNumericInput(raw: string): boolean {
   const trimmed = raw.trim();
   if (!trimmed) return false;
-  return /^-?\d+(\.\d+)?$/.test(trimmed);
+  const n = Number(trimmed);
+  return !isNaN(n) && Number.isFinite(n);
 }
 
 export type SafeQuestion = {
