@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
-import { Plus, FileText, Copy, Check, Users, UploadCloud, Settings, Trash2, KeyRound, ChevronDown, ChevronUp, Calendar, Clock, Award, Edit } from "lucide-react";
+import { Plus, FileText, Copy, Check, Users, UploadCloud, Settings, Trash2, KeyRound, ChevronDown, ChevronUp, Calendar, Clock, Award, Edit, Sun, Moon } from "lucide-react";
 import { fadeUp, listItem, staggerContainer } from "@/lib/motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -71,8 +71,28 @@ export function AdminDashboardClient({
   const [expandedProfiles, setExpandedProfiles] = useState<Record<string, boolean>>({});
 
   const [userToEdit, setUserToEdit] = useState<Profile | null>(null);
-  const [editFormData, setEditFormData] = useState({ firstName: "", lastName: "", username: "" });
+  const [editFormData, setEditFormData] = useState({ firstName: "", lastName: "", username: "", email: "" });
   const [isEditingUser, setIsEditingUser] = useState(false);
+
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    if (typeof window !== "undefined") {
+      return (localStorage.getItem("theme") as "light" | "dark") || "dark";
+    }
+    return "dark";
+  });
+
+  const toggleTheme = (newTheme: "light" | "dark") => {
+    setTheme(newTheme);
+    localStorage.setItem("theme", newTheme);
+    const root = document.documentElement;
+    if (newTheme === "light") {
+      root.classList.add("light");
+      root.classList.remove("dark");
+    } else {
+      root.classList.add("dark");
+      root.classList.remove("light");
+    }
+  };
 
   const toggleProfileExpanded = (profileId: string) => {
     setExpandedProfiles((prev) => ({
@@ -404,6 +424,7 @@ export function AdminDashboardClient({
                                             firstName: names[0] || "",
                                             lastName: names.slice(1).join(" ") || "",
                                             username: profile.username || "",
+                                            email: profile.email || "",
                                           });
                                         }}
                                         className="h-8 text-xs font-bold border-white/10 hover:bg-white/5 gap-1.5 rounded-xl"
@@ -584,7 +605,39 @@ export function AdminDashboardClient({
           variants={fadeUp}
           initial="hidden"
           animate="show"
+          className="space-y-6"
         >
+          {/* Display Settings Card */}
+          <div className="bento-card p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Sun className="h-5 w-5 text-primary" />
+              <h3 className="text-lg font-bold">Preferences</h3>
+            </div>
+            <div className="space-y-4">
+              <Label className="text-xs uppercase font-bold text-muted-foreground/60 tracking-wider">Display Theme</Label>
+              <div className="grid grid-cols-2 gap-4">
+                <Button
+                  type="button"
+                  variant={theme === "light" ? "default" : "outline"}
+                  onClick={() => toggleTheme("light")}
+                  className="gap-2 h-11 font-bold border-white/10 hover:bg-white/5 rounded-2xl"
+                >
+                  <Sun className="h-4 w-4 text-amber-400" />
+                  Light Mode
+                </Button>
+                <Button
+                  type="button"
+                  variant={theme === "dark" ? "default" : "outline"}
+                  onClick={() => toggleTheme("dark")}
+                  className="gap-2 h-11 font-bold border-white/10 hover:bg-white/5 rounded-2xl"
+                >
+                  <Moon className="h-4 w-4 text-cyan-400" />
+                  Dark Mode
+                </Button>
+              </div>
+            </div>
+          </div>
+
           <ChangePassword />
         </motion.div>
       )}
@@ -823,6 +876,19 @@ export function AdminDashboardClient({
                 value={editFormData.username}
                 onChange={(e) => setEditFormData({ ...editFormData, username: e.target.value })}
                 placeholder="johndoe"
+                className="bg-black/20"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-email">Email ID</Label>
+              <Input
+                id="edit-email"
+                required
+                type="email"
+                value={editFormData.email}
+                onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+                placeholder="email@example.com"
                 className="bg-black/20"
               />
             </div>

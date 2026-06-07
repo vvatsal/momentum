@@ -133,22 +133,37 @@ export async function deleteUser(userId: string) {
     const isAuthorized = profile?.role === "superadmin" || profile?.role === "teacher" || profile?.role === "admin";
     if (!isAuthorized) throw new Error("Unauthorized");
 
+    if (userId === adminUser.id) {
+        return { ok: false, error: "You cannot delete your own account" };
+    }
+
     const adminClient = createAdminClient();
+
+    const { data: targetProfile } = await adminClient
+        .from("profiles")
+        .select("role, created_by")
+        .eq("id", userId)
+        .single();
+
+    if (!targetProfile) {
+        return { ok: false, error: "User not found" };
+    }
 
     // If active user is a teacher, verify that they created this student
     if (profile?.role === "teacher") {
-        const { data: targetProfile } = await adminClient
-            .from("profiles")
-            .select("role, created_by")
-            .eq("id", userId)
-            .single();
-
-        if (!targetProfile || targetProfile.created_by !== adminUser.id || targetProfile.role !== "student") {
+        if (targetProfile.created_by !== adminUser.id || targetProfile.role !== "student") {
             throw new Error("Unauthorized to delete this user");
         }
+    } else if (profile?.role === "superadmin" || profile?.role === "admin") {
+        // Superadmin/Admin can delete students and teachers
+        if (targetProfile.role !== "student" && targetProfile.role !== "teacher") {
+            throw new Error("Unauthorized to delete this user role");
+        }
+    } else {
+        throw new Error("Unauthorized");
     }
 
-    // Delete student from auth (profile deletion cascades automatically)
+    // Delete user from auth (profile deletion cascades automatically)
     const { error } = await adminClient.auth.admin.deleteUser(userId);
 
     if (error) {
@@ -160,7 +175,10 @@ export async function deleteUser(userId: string) {
     return { ok: true };
 }
 
-export async function updateUser(userId: string, input: { firstName: string; lastName: string; username: string }) {
+export async function updateUser(
+    userId: string,
+    input: { firstName: string; lastName: string; username: string; email?: string }
+) {
     const supabase = await createClient();
     const { data: { user: adminUser } } = await supabase.auth.getUser();
 
@@ -190,15 +208,34 @@ export async function updateUser(userId: string, input: { firstName: string; las
         }
     }
 
+    // If email is provided, update email in auth
+    if (input.email) {
+        const { error: authError } = await adminClient.auth.admin.updateUserById(userId, {
+            email: input.email,
+            email_confirm: true,
+        });
+
+        if (authError) {
+            console.error("Error updating auth email:", authError);
+            return { ok: false, error: authError.message };
+        }
+    }
+
     const fullName = `${input.firstName} ${input.lastName}`.trim();
 
     // Update in profiles table
+    const updateData: Record<string, any> = {
+        full_name: fullName,
+        username: input.username,
+    };
+
+    if (input.email) {
+        updateData.email = input.email;
+    }
+
     const { error } = await adminClient
         .from("profiles")
-        .update({
-            full_name: fullName,
-            username: input.username,
-        })
+        .update(updateData)
         .eq("id", userId);
 
     if (error) {
