@@ -14,7 +14,7 @@ import { deleteTest } from "@/app/actions/test";
 import { CreateUserForm } from "./create-user-form";
 import { ChangePassword } from "../auth/change-password";
 import { changeUserPassword, deleteUser as deleteUserAction, updateUser as updateUserAction } from "@/app/actions/admin";
-import { uploadNoteAction, deleteNoteAction } from "@/app/actions/notes";
+import { uploadNoteAction, deleteNoteAction, getNoteVisibilityAction, updateNoteVisibilityAction } from "@/app/actions/notes";
 import type { Profile, Attempt } from "@/types/database";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -87,9 +87,75 @@ export function AdminDashboardClient({
     description: "",
     fileType: "pdf" as "pdf" | "markdown" | "html",
     content: "",
+    assignedStudentIds: [] as string[],
   });
   const [noteFile, setNoteFile] = useState<File | null>(null);
   const [isSubmittingNote, setIsSubmittingNote] = useState(false);
+
+  // Notes assignment state
+  const [assigningNote, setAssigningNote] = useState<any | null>(null);
+  const [assigningStudentIds, setAssigningStudentIds] = useState<string[]>([]);
+  const [isFetchingVisibility, setIsFetchingVisibility] = useState(false);
+  const [isSavingVisibility, setIsSavingVisibility] = useState(false);
+
+  const students = profiles.filter((p) => p.role === "student");
+
+  useEffect(() => {
+    if (isUploadNoteOpen) {
+      setNoteUploadData(prev => ({
+        ...prev,
+        assignedStudentIds: students.map(s => s.id)
+      }));
+    }
+  }, [isUploadNoteOpen, profiles]);
+
+  const handleOpenAssignNote = async (note: any) => {
+    setAssigningNote(note);
+    setIsFetchingVisibility(true);
+    try {
+      const studentIds = await getNoteVisibilityAction(note.id);
+      setAssigningStudentIds(studentIds);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to load note assignments",
+        variant: "destructive",
+      });
+    } finally {
+      setIsFetchingVisibility(false);
+    }
+  };
+
+  const handleSaveNoteVisibility = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!assigningNote) return;
+    setIsSavingVisibility(true);
+    try {
+      const res = await updateNoteVisibilityAction(assigningNote.id, assigningStudentIds);
+      if (res.ok) {
+        toast({
+          title: "Visibility updated",
+          description: "Note visibility has been successfully updated.",
+        });
+        setAssigningNote(null);
+        router.refresh();
+      } else {
+        toast({
+          title: "Error",
+          description: res.error || "Failed to update visibility",
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to update visibility",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingVisibility(false);
+    }
+  };
 
   const [theme, setTheme] = useState<"light" | "dark">(() => {
     if (typeof window !== "undefined") {
@@ -721,6 +787,15 @@ export function AdminDashboardClient({
                           </Button>
                         )}
                         <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => handleOpenAssignNote(note)}
+                          className="h-8 w-8 text-primary hover:bg-primary/10 border-white/10 rounded-xl"
+                          title="Assign to Students"
+                        >
+                          <Users className="h-4 w-4" />
+                        </Button>
+                        <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => setNoteToDelete({ id: note.id, title: note.title })}
@@ -1062,7 +1137,7 @@ export function AdminDashboardClient({
         onOpenChange={(open) => {
           if (!open) {
             setIsUploadNoteOpen(false);
-            setNoteUploadData({ title: "", description: "", fileType: "pdf", content: "" });
+            setNoteUploadData({ title: "", description: "", fileType: "pdf", content: "", assignedStudentIds: [] });
             setNoteFile(null);
           }
         }}
@@ -1093,6 +1168,7 @@ export function AdminDashboardClient({
                 formData.append("title", noteUploadData.title);
                 formData.append("description", noteUploadData.description);
                 formData.append("fileType", noteUploadData.fileType);
+                formData.append("assignedStudentIds", JSON.stringify(noteUploadData.assignedStudentIds));
                 if ((noteUploadData.fileType === "pdf" || noteUploadData.fileType === "html") && noteFile) {
                   formData.append("file", noteFile);
                 } else {
@@ -1103,7 +1179,7 @@ export function AdminDashboardClient({
                 if (res.ok) {
                   toast({ title: "Success", description: "Note published successfully" });
                   setIsUploadNoteOpen(false);
-                  setNoteUploadData({ title: "", description: "", fileType: "pdf", content: "" });
+                  setNoteUploadData({ title: "", description: "", fileType: "pdf", content: "", assignedStudentIds: [] });
                   setNoteFile(null);
                   router.refresh();
                 } else {
@@ -1206,6 +1282,72 @@ export function AdminDashboardClient({
               </div>
             )}
 
+            {/* Assign to Students checklist */}
+            <div className="space-y-2 pt-2 border-t border-white/[0.04]">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+                <Label className="text-xs uppercase font-bold text-muted-foreground/60 tracking-wider">Assign to Students</Label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-5 text-[9px] px-1.5 hover:bg-white/5 border border-white/5 text-primary rounded-lg font-bold"
+                    onClick={() => setNoteUploadData(prev => ({ ...prev, assignedStudentIds: students.map(s => s.id) }))}
+                  >
+                    Select All
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-5 text-[9px] px-1.5 hover:bg-red-500/10 border border-red-500/10 text-destructive rounded-lg font-bold"
+                    onClick={() => setNoteUploadData(prev => ({ ...prev, assignedStudentIds: [] }))}
+                  >
+                    Clear All
+                  </Button>
+                </div>
+              </div>
+              {students.length === 0 ? (
+                <p className="text-xs text-muted-foreground italic py-1">No students registered yet.</p>
+              ) : (
+                <div className="max-h-28 overflow-y-auto space-y-2 scrollbar-thin pr-1 border border-input rounded-lg p-2 bg-black/10">
+                  {students.map((student) => {
+                    const isChecked = noteUploadData.assignedStudentIds?.includes(student.id);
+                    const username = student.username || student.email.split("@")[0];
+                    return (
+                      <label
+                        key={student.id}
+                        className="flex items-center gap-2.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer py-0.5 select-none"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          className="rounded border-white/20 bg-black/30 text-primary focus:ring-primary/20"
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setNoteUploadData(prev => ({
+                                ...prev,
+                                assignedStudentIds: [...(prev.assignedStudentIds || []), student.id]
+                              }));
+                            } else {
+                              setNoteUploadData(prev => ({
+                                ...prev,
+                                assignedStudentIds: (prev.assignedStudentIds || []).filter(id => id !== student.id)
+                              }));
+                            }
+                          }}
+                        />
+                        <span className="truncate">
+                          <strong className="text-foreground/90">{student.full_name || "No name"}</strong>{" "}
+                          <span className="text-muted-foreground/60 font-mono">@{username}</span>
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
             <DialogFooter className="mt-4 gap-2">
               <Button
                 type="button"
@@ -1213,7 +1355,7 @@ export function AdminDashboardClient({
                 disabled={isSubmittingNote}
                 onClick={() => {
                   setIsUploadNoteOpen(false);
-                  setNoteUploadData({ title: "", description: "", fileType: "pdf", content: "" });
+                  setNoteUploadData({ title: "", description: "", fileType: "pdf", content: "", assignedStudentIds: [] });
                   setNoteFile(null);
                 }}
               >
@@ -1270,6 +1412,115 @@ export function AdminDashboardClient({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Assign Note Dialog */}
+      <Dialog
+        open={!!assigningNote}
+        onOpenChange={(open) => {
+          if (!open) {
+            setAssigningNote(null);
+            setAssigningStudentIds([]);
+          }
+        }}
+      >
+        <DialogContent className="glass-strong max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="font-black text-lg">Assign Study Note</DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              Select which students should have access to <strong className="text-foreground">&quot;{assigningNote?.title}&quot;</strong> on their home page.
+            </DialogDescription>
+          </DialogHeader>
+
+          {isFetchingVisibility ? (
+            <div className="py-6 text-center text-sm text-muted-foreground">
+              Loading assignments...
+            </div>
+          ) : (
+            <form onSubmit={handleSaveNoteVisibility} className="space-y-4 mt-2">
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+                  <Label className="text-xs uppercase font-bold text-muted-foreground/60 tracking-wider">Assigned Students</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-5 text-[9px] px-1.5 hover:bg-white/5 border border-white/5 text-primary rounded-lg font-bold"
+                      onClick={() => setAssigningStudentIds(students.map(s => s.id))}
+                    >
+                      Select All
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-5 text-[9px] px-1.5 hover:bg-red-500/10 border border-red-500/10 text-destructive rounded-lg font-bold"
+                      onClick={() => setAssigningStudentIds([])}
+                    >
+                      Clear All
+                    </Button>
+                  </div>
+                </div>
+
+                {students.length === 0 ? (
+                  <p className="text-xs text-muted-foreground italic py-1">No students registered yet.</p>
+                ) : (
+                  <div className="max-h-48 overflow-y-auto space-y-2 scrollbar-thin pr-1 border border-input rounded-lg p-2.5 bg-black/10">
+                    {students.map((student) => {
+                      const isChecked = assigningStudentIds.includes(student.id);
+                      const username = student.username || student.email.split("@")[0];
+                      return (
+                        <label
+                          key={student.id}
+                          className="flex items-center gap-2.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer py-0.5 select-none"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            className="rounded border-white/20 bg-black/30 text-primary focus:ring-primary/20"
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setAssigningStudentIds(prev => [...prev, student.id]);
+                              } else {
+                                setAssigningStudentIds(prev => prev.filter(id => id !== student.id));
+                              }
+                            }}
+                          />
+                          <span className="truncate">
+                            <strong className="text-foreground/90">{student.full_name || "No name"}</strong>{" "}
+                            <span className="text-muted-foreground/60 font-mono">@{username}</span>
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <DialogFooter className="mt-4 gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={isSavingVisibility}
+                  onClick={() => {
+                    setAssigningNote(null);
+                    setAssigningStudentIds([]);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSavingVisibility}
+                  className="shine-btn font-bold"
+                >
+                  {isSavingVisibility ? "Saving..." : "Save Visibility"}
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

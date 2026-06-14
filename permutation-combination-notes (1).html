@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="slides-format" content="viewport" />
+  <title>Permutation and Combination Summary</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#0f172a;--bg2:#020617;--surface:rgba(255,255,255,.07);--border:rgba(255,255,255,.12);
+      --text:#e5eefc;--muted:#a8b5c9;--a1:#60a5fa;--a2:#34d399;--a3:#fbbf24;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;height:100%;background:var(--bg2);color:var(--text);font-family:Inter,sans-serif;overflow:hidden}
+    .deck{position:relative;width:100vw;height:100vh}
+    .slide{position:absolute;inset:0;padding:42px 56px;display:flex;flex-direction:column;justify-content:center;opacity:0;transform:scale(.97);transition:.45s ease;pointer-events:none;overflow:hidden;background:radial-gradient(circle at top right, rgba(96,165,250,.18), transparent 28%),radial-gradient(circle at bottom left, rgba(52,211,153,.15), transparent 24%),linear-gradient(135deg,var(--bg),var(--bg2));}
+    .slide.active{opacity:1;transform:scale(1);pointer-events:auto}
+    .content{position:relative;z-index:2;max-width:1120px;margin:0 auto;width:100%}
+    h1,h2{font-family:"Playfair Display",serif;line-height:1.05;margin:0 0 14px}
+    h1{font-size:clamp(2.8rem,5vw,4.7rem)} h2{font-size:clamp(2rem,3.2vw,3rem)}
+    p,li,td,th{font-size:clamp(1rem,1.35vw,1.16rem);line-height:1.45}
+    .eyebrow{letter-spacing:.28em;text-transform:uppercase;color:var(--muted);font-size:.82rem;margin-bottom:14px}
+    .hero{font-size:96px;text-align:center;margin-bottom:18px;filter:drop-shadow(0 10px 35px rgba(96,165,250,.22));animation:float 4s ease-in-out infinite}
+    .title,.center{text-align:center}.muted{color:var(--muted)}
+    .grid2{display:grid;grid-template-columns:1.05fr .95fr;gap:24px;align-items:start}
+    .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:18px 20px;backdrop-filter:blur(10px);box-shadow:0 8px 30px rgba(0,0,0,.18)}
+    .formula{font-size:1.25rem;font-weight:700;color:#fff;margin:10px 0}
+    ul{margin:10px 0 0 20px} li{margin:8px 0}
+    .example{border-left:4px solid var(--a1);padding-left:14px;margin-top:12px}
+    .accent2{border-left-color:var(--a2)} .accent3{border-left-color:var(--a3)}
+    .big{font-size:2.2rem;font-weight:800;color:#fff}
+    table{width:100%;border-collapse:collapse;margin-top:14px;background:rgba(255,255,255,.04);border-radius:14px;overflow:hidden}
+    th,td{padding:12px 14px;border:1px solid rgba(255,255,255,.08);vertical-align:top}
+    th{background:rgba(255,255,255,.08);text-align:left}
+    .footer{position:absolute;right:26px;bottom:18px;color:var(--muted);font-size:.85rem}
+    .dots{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);display:flex;gap:8px;z-index:50;background:rgba(15,23,42,.6);border:1px solid var(--border);padding:10px 14px;border-radius:999px;backdrop-filter:blur(12px)}
+    .dot{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.18);cursor:pointer}.dot.active{background:var(--a1);transform:scale(1.25)}
+    @keyframes float{50%{transform:translateY(-12px)}}
+    @media print{
+      html,body{overflow:visible;background:#fff}
+      .dots{display:none !important}
+      .deck{display:block;height:auto}
+      .slide{position:relative;opacity:1 !important;transform:none !important;pointer-events:auto;page-break-after:always;break-after:page;height:100vh}
+      .slide:last-child{page-break-after:auto;break-after:auto}
+    }
+  </style>
+</head>
+<body>
+  <div class="deck">
+    <section class="slide active" data-slide="1"><div class="content title"><div class="eyebrow">Mathematics Summary Notes</div><div class="hero">🔢</div><h1>Permutation and Combination</h1><p class="muted">Key formulas, problem types, solution methods, and one worked example for each major type.</p></div><div class="footer">1</div></section>
+
+    <section class="slide" data-slide="2"><div class="content"><div class="eyebrow">Core ideas</div><h2>What to check first</h2><div class="grid2"><div class="card"><ul><li><b>Permutation</b>: use when order matters, such as arrangements, rankings, seating in a row.</li><li><b>Combination</b>: use when order does not matter, such as teams, committees, selections.</li><li><b>Factorial</b>: counts arrangements of all distinct objects.</li><li>Always identify whether repetition is allowed and whether there are restrictions.</li></ul></div><div class="card"><div class="formula">n! = n(n-1)(n-2)... 1, &nbsp; 0! = 1</div><div class="formula">ⁿPᵣ = n! / (n-r)!</div><div class="formula">ⁿCᵣ = n! / [r!(n-r)!]</div><div class="formula">ⁿPᵣ = ⁿCᵣ × r!</div></div></div></div><div class="footer">2</div></section>
+
+    <section class="slide" data-slide="3"><div class="content"><div class="eyebrow">Type 1</div><h2>Selection vs arrangement</h2><div class="grid2"><div class="card"><p><b>How to solve:</b> Read the wording carefully.</p><ul><li>Choose, select, form a team → combination.</li><li>Arrange, seat, rank, order → permutation.</li></ul><div class="example"><p><b>Example:</b> From 8 students, choose a team of 3.</p><p>Since order does not matter, use ⁸C₃ = 8!/(3!5!) = 56.</p><p><b>Answer:</b> 56 teams.</p></div></div><div class="card"><div class="example accent2"><p><b>Example:</b> Arrange 4 different books on a shelf.</p><p>Order matters, so use ⁴P₄ = 4! = 24.</p><p><b>Answer:</b> 24 arrangements.</p></div></div></div></div><div class="footer">3</div></section>
+
+    <section class="slide" data-slide="4"><div class="content"><div class="eyebrow">Type 2</div><h2>Arrange all objects</h2><div class="grid2"><div class="card"><p><b>Distinct objects:</b> If all n objects are different, number of arrangements = n!.</p><div class="example"><p><b>Example:</b> Arrange the letters of MATH.</p><p>There are 4 distinct letters, so ways = 4! = 24.</p></div></div><div class="card"><p><b>Repeated objects:</b> If some objects are identical, divide by factorials of repeated counts.</p><div class="formula">Arrangements = n! / (p!q!...)</div><div class="example accent3"><p><b>Example:</b> Arrange the letters of LEVEL.</p><p>5 letters with L repeated 2 times and E repeated 2 times.</p><p>Ways = 5!/(2!2!) = 120/4 = 30.</p></div></div></div></div><div class="footer">4</div></section>
+
+    <section class="slide" data-slide="5"><div class="content"><div class="eyebrow">Type 3</div><h2>Restricted arrangements</h2><div class="grid2"><div class="card"><ul><li><b>Together</b>: treat the required group as one block.</li><li><b>Not together</b>: total arrangements minus arrangements together.</li><li>For vowels/consonants restrictions, first create valid slots or blocks.</li></ul></div><div class="card"><div class="example"><p><b>Example:</b> A, B, C, D, E sit in a row, and A and B must sit together.</p><p>Treat AB as one block. Then we arrange AB, C, D, E in 4! ways.</p><p>Inside the block, A and B can switch in 2! ways.</p><p>Total = 4! × 2! = 24 × 2 = 48.</p><p><b>Answer:</b> 48 ways.</p></div></div></div></div><div class="footer">5</div></section>
+
+    <section class="slide" data-slide="6"><div class="content"><div class="eyebrow">Type 4</div><h2>At least / at most conditions</h2><div class="grid2"><div class="card"><p><b>How to solve:</b></p><ul><li>Break into cases and add, or</li><li>Use complement: valid = total − unwanted.</li></ul></div><div class="card"><div class="example accent2"><p><b>Example:</b> Form a committee of 4 from 6 men and 4 women with at least 1 woman.</p><p>Total committees = ¹⁰C₄ = 210.</p><p>Unwanted case: no woman, so choose all 4 from 6 men = ⁶C₄ = 15.</p><p>Required count = 210 − 15 = 195.</p><p><b>Answer:</b> 195 committees.</p></div></div></div></div><div class="footer">6</div></section>
+
+    <section class="slide" data-slide="7"><div class="content"><div class="eyebrow">Type 5</div><h2>Distribution problems</h2><div class="grid2"><div class="card"><p><b>Case A: Distinct objects</b> to distinct persons or boxes.</p><p>Usually use the multiplication principle or permutations.</p><div class="example"><p><b>Example:</b> 3 different prizes are given to 5 students, and a student may win more than one prize.</p><p>Each prize has 5 choices, so total = 5 × 5 × 5 = 125.</p></div></div><div class="card"><p><b>Case B: Identical objects</b> to distinct boxes, zero allowed.</p><div class="formula">x₁ + x₂ + ... + xₙ = k</div><p>Number of non-negative solutions = (k+n−1)C(n−1).</p><div class="example accent3"><p><b>Example:</b> Distribute 5 identical balls into 3 boxes.</p><p>Ways = (5+3−1)C(3−1) = 7C₂ = 21.</p></div></div></div></div><div class="footer">7</div></section>
+
+    <section class="slide" data-slide="8"><div class="content"><div class="eyebrow">Type 6 and 7</div><h2>Repetition and circular arrangement</h2><div class="grid2"><div class="card"><p><b>Permutation with repetition allowed:</b> if each of r positions can be filled by any of n objects, number of ways = nʳ.</p><div class="example"><p><b>Example:</b> 4-digit numbers from 0–9, repetition allowed, first digit not 0.</p><p>First digit: 9 choices. Remaining 3 digits: 10 choices each.</p><p>Total = 9 × 10³ = 9000.</p></div></div><div class="card"><p><b>Circular permutation:</b> n distinct objects around a circle can be arranged in (n−1)! ways.</p><div class="example accent2"><p><b>Example:</b> 5 people around a circular table.</p><p>Ways = (5−1)! = 4! = 24.</p><p><b>Answer:</b> 24 circular arrangements.</p></div></div></div></div><div class="footer">8</div></section>
+
+    <section class="slide" data-slide="9"><div class="content"><div class="eyebrow">Quick recap</div><h2>Formula and method sheet</h2><table><tr><th>Situation</th><th>Use</th><th>Formula / method</th></tr><tr><td>Select r from n</td><td>Combination</td><td>ⁿCᵣ = n! / [r!(n-r)!]</td></tr><tr><td>Arrange r from n</td><td>Permutation</td><td>ⁿPᵣ = n! / (n-r)!</td></tr><tr><td>Arrange all distinct objects</td><td>Factorial</td><td>n!</td></tr><tr><td>Repeated objects</td><td>Adjusted permutation</td><td>n!/(p!q!…)</td></tr><tr><td>Repetition allowed</td><td>Position-wise counting</td><td>nʳ</td></tr><tr><td>Circular arrangement</td><td>Circle rule</td><td>(n−1)!</td></tr><tr><td>Identical objects into boxes</td><td>Stars and bars</td><td>(k+n−1)C(n−1)</td></tr></table></div><div class="footer">9</div></section>
+  </div>
+  <div class="dots" id="dots"></div>
+  <script>
+    const slides=[...document.querySelectorAll('.slide')];
+    const dots=document.getElementById('dots');
+    let current=0;
+    function renderDots(){dots.innerHTML='';slides.forEach((_,i)=>{const d=document.createElement('div');d.className='dot'+(i===current?' active':'');d.onclick=()=>go(i);dots.appendChild(d);});}
+    function go(i){slides[current].classList.remove('active');current=(i+slides.length)%slides.length;slides[current].classList.add('active');renderDots();}
+    document.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key===' '){e.preventDefault();go(current+1)} if(e.key==='ArrowLeft'){e.preventDefault();go(current-1)}});
+    let sx=0;document.addEventListener('touchstart',e=>sx=e.touches[0].clientX,{passive:true});document.addEventListener('touchend',e=>{const dx=sx-e.changedTouches[0].clientX;if(Math.abs(dx)>50)go(current+(dx>0?1:-1))},{passive:true});
+    renderDots();
+  </script>
+</body>
+</html>

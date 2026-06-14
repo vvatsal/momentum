@@ -45,6 +45,8 @@ export async function uploadNoteAction(formData: FormData) {
   const fileType = formData.get("fileType") as "pdf" | "markdown" | "html";
   const content = formData.get("content") as string;
   const file = formData.get("file") as File | null;
+  const assignedStudentIdsJson = formData.get("assignedStudentIds") as string | null;
+  const assignedStudentIds: string[] = assignedStudentIdsJson ? JSON.parse(assignedStudentIdsJson) : [];
 
   if (!title) {
     return { ok: false, error: "Title is required" };
@@ -97,22 +99,38 @@ export async function uploadNoteAction(formData: FormData) {
   }
 
   // Insert into DB
-  const { error: dbError } = await adminClient.from("notes").insert({
-    title,
-    description: description || null,
-    file_path: filePath,
-    file_type: fileType,
-    content: inlineContent,
-    created_by: user.id,
-  });
+  const { data: dbData, error: dbError } = await adminClient
+    .from("notes")
+    .insert({
+      title,
+      description: description || null,
+      file_path: filePath,
+      file_type: fileType,
+      content: inlineContent,
+      created_by: user.id,
+    })
+    .select("id")
+    .single();
 
-  if (dbError) {
+  if (dbError || !dbData) {
     console.error("Error saving note metadata:", dbError);
     // Cleanup uploaded file if DB save failed
     if (filePath) {
       await adminClient.storage.from("notes").remove([filePath]);
     }
-    return { ok: false, error: dbError.message };
+    return { ok: false, error: dbError?.message ?? "Failed to save note metadata" };
+  }
+
+  // Insert visibility records if students are assigned
+  if (assignedStudentIds.length > 0) {
+    const visibilityRecords = assignedStudentIds.map(studentId => ({
+      note_id: dbData.id,
+      student_id: studentId,
+    }));
+    const { error: visError } = await adminClient.from("note_visibility").insert(visibilityRecords);
+    if (visError) {
+      console.error("Error saving note visibility:", visError);
+    }
   }
 
   revalidatePath("/admin");
@@ -160,7 +178,7 @@ export async function deleteNoteAction(id: string) {
     }
   }
 
-  // Delete from DB
+  // Delete from DB (cascades to note_visibility)
   const { error: deleteError } = await adminClient
     .from("notes")
     .delete()
@@ -174,4 +192,100 @@ export async function deleteNoteAction(id: string) {
   revalidatePath("/admin");
   revalidatePath("/dashboard");
   return { ok: true };
+}
+
+export async function getNoteVisibilityAction(noteId: string): Promise<string[]> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const { data, error } = await supabase
+    .from("note_visibility")
+    .select("student_id")
+    .eq("note_id", noteId);
+
+  if (error || !data) {
+    console.error("Error fetching note visibility:", error);
+    return [];
+  }
+
+  return data.map((v) => v.student_id);
+}
+
+export async function updateNoteVisibilityAction(noteId: string, studentIds: string[]): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Not authenticated");
+
+    // Verify role is superadmin or teacher
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    const isAuthorized = profile?.role === "superadmin" || profile?.role === "teacher" || profile?.role === "admin";
+    if (!isAuthorized) throw new Error("Unauthorized");
+
+    const adminClient = createAdminClient();
+
+    // If teacher, check if all studentIds were created by them and the note itself was created by them
+    if (profile?.role === "teacher") {
+      const { data: note } = await adminClient
+        .from("notes")
+        .select("created_by")
+        .eq("id", noteId)
+        .single();
+      
+      if (!note || note.created_by !== user.id) {
+        return { ok: false, error: "Cannot manage visibility of notes you did not create" };
+      }
+
+      if (studentIds.length > 0) {
+        const { data: students } = await adminClient
+          .from("profiles")
+          .select("id")
+          .eq("created_by", user.id)
+          .in("id", studentIds);
+
+        const validCount = students?.length ?? 0;
+        if (validCount !== studentIds.length) {
+          return { ok: false, error: "Cannot assign notes to students not created by you" };
+        }
+      }
+    }
+
+    // Delete existing assignments
+    const { error: deleteError } = await adminClient
+      .from("note_visibility")
+      .delete()
+      .eq("note_id", noteId);
+
+    if (deleteError) {
+      return { ok: false, error: deleteError.message };
+    }
+
+    // Insert new ones
+    if (studentIds.length > 0) {
+      const records = studentIds.map((studentId) => ({
+        note_id: noteId,
+        student_id: studentId,
+      }));
+
+      const { error: insertError } = await adminClient
+        .from("note_visibility")
+        .insert(records);
+
+      if (insertError) {
+        return { ok: false, error: insertError.message };
+      }
+    }
+
+    revalidatePath("/dashboard");
+    revalidatePath("/admin");
+    return { ok: true };
+  } catch (err: any) {
+    return { ok: false, error: err.message || "An unexpected error occurred" };
+  }
 }
