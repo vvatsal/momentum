@@ -73,6 +73,20 @@ AS $$
   SELECT role FROM public.profiles WHERE id = auth.uid();
 $$;
 
+CREATE OR REPLACE FUNCTION public.is_test_creator(test_id UUID, user_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.tests
+    WHERE id = test_id AND created_by = user_id
+  );
+$$;
+
+
 -- Re-create the sign-up handle trigger function with the new role parsing and created_by field mapping
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER
@@ -225,10 +239,7 @@ CREATE POLICY "Teacher own tests visibility access" ON public.test_visibility
   FOR ALL TO authenticated
   USING (
     public.is_teacher()
-    AND EXISTS (
-      SELECT 1 FROM public.tests t
-      WHERE t.id = test_visibility.test_id AND t.created_by = auth.uid()
-    )
+    AND public.is_test_creator(test_id, auth.uid())
     AND EXISTS (
       SELECT 1 FROM public.profiles p
       WHERE p.id = test_visibility.student_id AND p.created_by = auth.uid()
@@ -236,10 +247,7 @@ CREATE POLICY "Teacher own tests visibility access" ON public.test_visibility
   )
   WITH CHECK (
     public.is_teacher()
-    AND EXISTS (
-      SELECT 1 FROM public.tests t
-      WHERE t.id = test_visibility.test_id AND t.created_by = auth.uid()
-    )
+    AND public.is_test_creator(test_id, auth.uid())
     AND EXISTS (
       SELECT 1 FROM public.profiles p
       WHERE p.id = test_visibility.student_id AND p.created_by = auth.uid()

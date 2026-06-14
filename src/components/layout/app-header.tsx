@@ -21,7 +21,7 @@ export function AppHeader({ title, subtitle, homeHref }: AppHeaderProps) {
       initial={reduce ? false : "hidden"}
       animate="show"
       variants={fadeUp}
-      className="sticky top-0 z-40 border-b border-white/[0.06] glass backdrop-blur-2xl"
+      className="sticky top-0 z-40 border-b border-border bg-card/85 backdrop-blur-2xl"
     >
       <div className="mx-auto flex h-14 max-w-lg items-center justify-between gap-3 px-4 sm:max-w-2xl lg:max-w-4xl">
         <div className="flex min-w-0 items-center gap-3">
@@ -31,7 +31,7 @@ export function AppHeader({ title, subtitle, homeHref }: AppHeaderProps) {
             aria-label="Home"
           >
             <motion.span
-              className="absolute inset-0 rounded-xl bg-gradient-to-br from-primary to-accent opacity-90 shadow-[0_0_20px_-5px_hsla(190,100%,50%,0.5)]"
+              className="absolute inset-0 rounded-xl bg-primary shadow-sm"
               whileHover={reduce ? undefined : { scale: 1.1, rotate: 5 }}
               transition={{ type: "spring", stiffness: 400, damping: 15 }}
             />
@@ -54,7 +54,7 @@ export function AppHeader({ title, subtitle, homeHref }: AppHeaderProps) {
             variant="ghost"
             size="icon"
             asChild
-            className="h-9 w-9 rounded-xl text-muted-foreground hover:bg-white/5 hover:text-foreground transition-all"
+            className="h-9 w-9 rounded-xl text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-all"
             aria-label="Profile"
           >
             <Link href="/profile">
@@ -66,7 +66,7 @@ export function AppHeader({ title, subtitle, homeHref }: AppHeaderProps) {
               type="submit"
               variant="ghost"
               size="icon"
-              className="h-9 w-9 rounded-xl text-muted-foreground hover:bg-white/5 hover:text-foreground transition-all"
+              className="h-9 w-9 rounded-xl text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-all"
               aria-label="Sign out"
             >
               <LogOut className="h-4 w-4" />

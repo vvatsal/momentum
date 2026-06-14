@@ -27,9 +27,9 @@ export function ProfileClient({ profile }: { profile: Profile }) {
 
   const [theme, setTheme] = useState<"light" | "dark">(() => {
     if (typeof window !== "undefined") {
-      return (localStorage.getItem("theme") as "light" | "dark") || "dark";
+      return (localStorage.getItem("theme") as "light" | "dark") || "light";
     }
-    return "dark";
+    return "light";
   });
 
   const toggleTheme = (newTheme: "light" | "dark") => {
@@ -173,7 +173,7 @@ export function ProfileClient({ profile }: { profile: Profile }) {
                 type="button"
                 variant={theme === "light" ? "default" : "outline"}
                 onClick={() => toggleTheme("light")}
-                className="gap-2 h-11 font-bold border-white/10 hover:bg-white/5 rounded-2xl"
+                className="gap-2 h-11 font-bold border-border hover:bg-accent rounded-2xl"
               >
                 <Sun className="h-4 w-4 text-amber-400" />
                 Light
@@ -182,7 +182,7 @@ export function ProfileClient({ profile }: { profile: Profile }) {
                 type="button"
                 variant={theme === "dark" ? "default" : "outline"}
                 onClick={() => toggleTheme("dark")}
-                className="gap-2 h-11 font-bold border-white/10 hover:bg-white/5 rounded-2xl"
+                className="gap-2 h-11 font-bold border-border hover:bg-accent rounded-2xl"
               >
                 <Moon className="h-4 w-4 text-cyan-400" />
                 Dark
@@ -207,7 +207,7 @@ export function ProfileClient({ profile }: { profile: Profile }) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="your.email@example.com"
-                className="bg-black/20"
+                className="bg-background"
               />
             </div>
             <Button
@@ -243,7 +243,7 @@ export function ProfileClient({ profile }: { profile: Profile }) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="bg-black/20"
+                className="bg-background"
                 minLength={6}
               />
             </div>
@@ -256,7 +256,7 @@ export function ProfileClient({ profile }: { profile: Profile }) {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="••••••••"
-                className="bg-black/20"
+                className="bg-background"
                 minLength={6}
               />
             </div>

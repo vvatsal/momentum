@@ -1,5 +1,6 @@
+import nodemailer from "nodemailer";
 import { Resend } from "resend";
-import { getAppUrl, getResendConfig } from "@/lib/env";
+import { getAppUrl, getResendConfig, getSmtpConfig } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export type PublishEmailResult = {
@@ -32,6 +33,7 @@ export async function notifyStudentsTestPublished(
   testId: string,
   testTitle: string
 ): Promise<PublishEmailResult> {
+  const smtpConfig = getSmtpConfig();
   const resendConfig = getResendConfig();
   const admin = createAdminClient();
 
@@ -68,16 +70,57 @@ export async function notifyStudentsTestPublished(
   const appUrl = getAppUrl();
   const testUrl = `${appUrl}/tests/${testId}`;
   const subject = `New test available: ${testTitle}`;
+  const htmlContent = `
+    <p>A new test has been published on Momentum.</p>
+    <p><strong>${escapeHtml(testTitle)}</strong></p>
+    <p><a href="${testUrl}">Open test</a></p>
+    <p>Or copy this link: ${testUrl}</p>
+  `;
+
+  if (smtpConfig) {
+    const transporter = nodemailer.createTransport({
+      host: smtpConfig.host,
+      port: smtpConfig.port,
+      secure: smtpConfig.secure,
+      auth: {
+        user: smtpConfig.auth.user,
+        pass: smtpConfig.auth.pass,
+      },
+    });
+
+    let sent = 0;
+    let failed = 0;
+
+    for (const s of students) {
+      try {
+        const info = await transporter.sendMail({
+          from: smtpConfig.fromEmail,
+          to: s.email,
+          subject,
+          html: htmlContent,
+        });
+
+        sent += 1;
+        await logEmail(testId, s.email, subject, "sent", info.messageId || null);
+      } catch (e) {
+        failed += 1;
+        const msg = e instanceof Error ? e.message : "SMTP Send failed";
+        await logEmail(testId, s.email, subject, "failed", null, msg);
+      }
+    }
+
+    return { sent, failed, skipped: false };
+  }
 
   if (!resendConfig) {
     for (const s of students) {
-      await logEmail(testId, s.email, subject, "skipped", null, "Resend not configured");
+      await logEmail(testId, s.email, subject, "skipped", null, "Email provider not configured");
     }
     return {
       sent: 0,
       failed: 0,
       skipped: true,
-      message: "Resend not configured — add RESEND_API_KEY and RESEND_FROM_EMAIL",
+      message: "Email provider not configured — add SMTP or Resend credentials to environment variables",
     };
   }
 
@@ -91,12 +134,7 @@ export async function notifyStudentsTestPublished(
         from: resendConfig.fromEmail,
         to: s.email,
         subject,
-        html: `
-          <p>A new test has been published on Momentum.</p>
-          <p><strong>${escapeHtml(testTitle)}</strong></p>
-          <p><a href="${testUrl}">Open test</a></p>
-          <p>Or copy this link: ${testUrl}</p>
-        `,
+        html: htmlContent,
       });
 
       if (sendError) {
@@ -123,3 +161,4 @@ function escapeHtml(s: string): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 }
+
