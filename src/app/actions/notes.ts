@@ -42,7 +42,7 @@ export async function uploadNoteAction(formData: FormData) {
 
   const title = formData.get("title") as string;
   const description = formData.get("description") as string;
-  const fileType = formData.get("fileType") as "pdf" | "markdown";
+  const fileType = formData.get("fileType") as "pdf" | "markdown" | "html";
   const content = formData.get("content") as string;
   const file = formData.get("file") as File | null;
 
@@ -68,9 +68,9 @@ export async function uploadNoteAction(formData: FormData) {
   let filePath = null;
   let inlineContent = content || null;
 
-  if (fileType === "pdf") {
+  if (fileType === "pdf" || fileType === "html") {
     if (!file || file.size === 0) {
-      return { ok: false, error: "PDF file is required for PDF type" };
+      return { ok: false, error: `${fileType.toUpperCase()} file is required` };
     }
 
     const fileExt = file.name.split(".").pop();

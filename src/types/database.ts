@@ -257,7 +257,7 @@ export interface Note {
   title: string;
   description: string | null;
   file_path: string | null;
-  file_type: "pdf" | "markdown";
+  file_type: "pdf" | "markdown" | "html";
   content: string | null;
   created_by: string;
   created_at: string;
