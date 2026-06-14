@@ -85,7 +85,7 @@ export function AdminDashboardClient({
   const [noteUploadData, setNoteUploadData] = useState({
     title: "",
     description: "",
-    fileType: "pdf" as "pdf" | "markdown",
+    fileType: "pdf" as "pdf" | "markdown" | "html",
     content: "",
   });
   const [noteFile, setNoteFile] = useState<File | null>(null);
@@ -695,7 +695,7 @@ export function AdminDashboardClient({
                         </p>
                         <div className="flex items-center gap-3 mt-2">
                           <Badge
-                            variant={note.file_type === "pdf" ? "default" : "secondary"}
+                            variant={note.file_type === "pdf" ? "default" : note.file_type === "html" ? "success" : "secondary"}
                             className="h-5 text-[10px] uppercase font-semibold"
                           >
                             {note.file_type}
@@ -1071,7 +1071,7 @@ export function AdminDashboardClient({
           <DialogHeader>
             <DialogTitle className="font-black text-lg">Publish New Note</DialogTitle>
             <DialogDescription className="text-sm text-muted-foreground">
-              Provide study materials, notes, or references in PDF or Markdown format for students.
+              Provide study materials, notes, or references in PDF, HTML Slides, or Markdown format for students.
             </DialogDescription>
           </DialogHeader>
 
@@ -1082,8 +1082,8 @@ export function AdminDashboardClient({
                 toast({ title: "Validation Error", description: "Title is required", variant: "destructive" });
                 return;
               }
-              if (noteUploadData.fileType === "pdf" && !noteFile) {
-                toast({ title: "Validation Error", description: "Please upload a PDF file", variant: "destructive" });
+              if ((noteUploadData.fileType === "pdf" || noteUploadData.fileType === "html") && !noteFile) {
+                toast({ title: "Validation Error", description: `Please upload a ${noteUploadData.fileType.toUpperCase()} file`, variant: "destructive" });
                 return;
               }
 
@@ -1093,7 +1093,7 @@ export function AdminDashboardClient({
                 formData.append("title", noteUploadData.title);
                 formData.append("description", noteUploadData.description);
                 formData.append("fileType", noteUploadData.fileType);
-                if (noteUploadData.fileType === "pdf" && noteFile) {
+                if ((noteUploadData.fileType === "pdf" || noteUploadData.fileType === "html") && noteFile) {
                   formData.append("file", noteFile);
                 } else {
                   formData.append("content", noteUploadData.content);
@@ -1143,7 +1143,7 @@ export function AdminDashboardClient({
 
             <div className="space-y-2">
               <Label>File Format</Label>
-              <div className="flex gap-4">
+              <div className="flex gap-4 flex-wrap">
                 <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
                   <input
                     type="radio"
@@ -1158,6 +1158,16 @@ export function AdminDashboardClient({
                   <input
                     type="radio"
                     name="noteFileType"
+                    checked={noteUploadData.fileType === "html"}
+                    onChange={() => setNoteUploadData(prev => ({ ...prev, fileType: "html" }))}
+                    className="h-4 w-4 text-primary"
+                  />
+                  HTML Slides (.html)
+                </label>
+                <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                  <input
+                    type="radio"
+                    name="noteFileType"
                     checked={noteUploadData.fileType === "markdown"}
                     onChange={() => setNoteUploadData(prev => ({ ...prev, fileType: "markdown" }))}
                     className="h-4 w-4 text-primary"
@@ -1167,13 +1177,13 @@ export function AdminDashboardClient({
               </div>
             </div>
 
-            {noteUploadData.fileType === "pdf" ? (
+            {noteUploadData.fileType === "pdf" || noteUploadData.fileType === "html" ? (
               <div className="space-y-2">
-                <Label htmlFor="note-file">Upload PDF File</Label>
+                <Label htmlFor="note-file">Upload {noteUploadData.fileType.toUpperCase()} File</Label>
                 <Input
                   id="note-file"
                   type="file"
-                  accept=".pdf"
+                  accept={noteUploadData.fileType === "pdf" ? ".pdf" : ".html"}
                   required
                   onChange={(e) => {
                     const files = e.target.files;

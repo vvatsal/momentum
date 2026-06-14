@@ -92,6 +92,8 @@ export default async function NoteViewerPage({
     : null;
 
   const isPdf = note.file_type === "pdf";
+  const isHtml = note.file_type === "html";
+  const isEmbeddable = isPdf || isHtml;
 
   return (
     <PageShell noPadding>
@@ -113,7 +115,7 @@ export default async function NoteViewerPage({
 
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2">
-              <Badge variant={isPdf ? "default" : "secondary"}>
+              <Badge variant={isPdf ? "default" : isHtml ? "success" : "secondary"}>
                 {note.file_type.toUpperCase()}
               </Badge>
             </div>
@@ -148,12 +150,13 @@ export default async function NoteViewerPage({
               Scrollable Viewer
             </h3>
 
-            {isPdf && publicUrl ? (
+            {isEmbeddable && publicUrl ? (
               <div className="relative w-full h-[70vh] border border-border rounded-lg bg-slate-100 dark:bg-slate-900 overflow-hidden">
                 <iframe
-                  src={`${publicUrl}#toolbar=0&navpanes=0`}
-                  className="w-full h-full border-0"
+                  src={isPdf ? `${publicUrl}#toolbar=0&navpanes=0` : publicUrl}
+                  className="w-full h-full border-0 bg-white"
                   title={note.title}
+                  sandbox="allow-scripts allow-same-origin"
                 />
               </div>
             ) : (

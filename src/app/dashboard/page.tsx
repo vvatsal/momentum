@@ -132,7 +132,7 @@ export default async function StudentDashboardPage({
                       <div className="flex items-start justify-between gap-4">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 mb-2">
-                            <Badge variant={note.file_type === "pdf" ? "default" : "secondary"}>
+                            <Badge variant={note.file_type === "pdf" ? "default" : note.file_type === "html" ? "success" : "secondary"}>
                               {note.file_type}
                             </Badge>
                           </div>
