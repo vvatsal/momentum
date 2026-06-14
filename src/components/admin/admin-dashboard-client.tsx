@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import { Plus, FileText, Copy, Check, Users, UploadCloud, Settings, Trash2, KeyRound, ChevronDown, ChevronUp, Calendar, Clock, Award, Edit, Sun, Moon, BookOpen, Trash } from "lucide-react";
