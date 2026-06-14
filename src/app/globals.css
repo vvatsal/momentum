@@ -4,6 +4,34 @@
 
 @layer base {
   :root {
+    --background: 210 20% 98%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --primary: 221.2 83.2% 53.3%; /* Blue 600 - Bootstrap primary */
+    --primary-foreground: 210 20% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 84.2% 60.2%; /* Red 600 */
+    --destructive-foreground: 210 20% 98%;
+    --border: 214.3 32% 91%; /* Slate 200 */
+    --input: 214.3 32% 91%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.75rem;
+    --palette-unanswered: 210 10% 88%;
+    --palette-answered: 142.1 76.2% 36.3%; /* Emerald 600 */
+    --palette-skipped: 37.7 92.1% 50.2%; /* Amber 500 */
+    --palette-current: 221.2 83.2% 53.3%;
+    
+    --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+    --card-shadow-hover: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  }
+
+  .dark {
     --background: 230 40% 3%;
     --foreground: 210 40% 98%;
     --card: 230 35% 6%;
@@ -26,6 +54,9 @@
     --palette-answered: 160 84% 45%;
     --palette-skipped: 45 93% 47%;
     --palette-current: 190 100% 50%;
+    
+    --card-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    --card-shadow-hover: 0 0 20px -4px hsl(199 89% 48% / 0.4);
   }
 
   * {
@@ -39,89 +70,16 @@
   body {
     @apply bg-background text-foreground antialiased selection:bg-primary/30 selection:text-white;
     font-feature-settings: "rlig" 1, "calt" 1;
-    background-image: 
-      radial-gradient(at 0% 0%, hsla(190, 100%, 50%, 0.05) 0px, transparent 50%),
-      radial-gradient(at 100% 0%, hsla(280, 100%, 70%, 0.05) 0px, transparent 50%);
+    background-color: #f8fafc;
+    background-image: radial-gradient(ellipse at top, rgba(37, 99, 235, 0.04), transparent 60%);
     background-attachment: fixed;
   }
 
-  .light {
-    --background: 210 20% 98%;
-    --foreground: 222 47% 11%;
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
-    --primary: 190 100% 40%;
-    --primary-foreground: 210 20% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222 47% 11%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --border: 214.3 31.8% 90%;
-    --input: 214.3 31.8% 90%;
-    --ring: 190 100% 40%;
-    --palette-unanswered: 210 10% 88%;
-    --palette-answered: 160 84% 38%;
-    --palette-skipped: 45 93% 38%;
-    --palette-current: 190 100% 40%;
-  }
-
-  .light body {
+  .dark body {
+    background-color: #030712;
     background-image: 
-      radial-gradient(at 0% 0%, hsla(190, 100%, 40%, 0.08) 0px, transparent 50%),
-      radial-gradient(at 100% 0%, hsla(280, 100%, 60%, 0.08) 0px, transparent 50%);
-  }
-
-  .light .bg-grid {
-    background-image:
-      linear-gradient(to right, hsl(0 0% 0% / 0.04) 1px, transparent 1px),
-      linear-gradient(to bottom, hsl(0 0% 0% / 0.04) 1px, transparent 1px);
-  }
-
-  .light .glass {
-    border-color: rgba(0, 0, 0, 0.06);
-    background-color: rgba(255, 255, 255, 0.6);
-    box-shadow: 0 8px 32px rgba(31, 38, 135, 0.04);
-  }
-
-  .light .glass-strong {
-    border-color: rgba(0, 0, 0, 0.08);
-    background-color: rgba(255, 255, 255, 0.85);
-    box-shadow: 0 12px 48px rgba(31, 38, 135, 0.06);
-  }
-
-  .light .bento-card {
-    border-color: rgba(0, 0, 0, 0.06);
-    background-color: rgba(255, 255, 255, 0.6);
-  }
-
-  .light .bento-card:hover {
-    border-color: rgba(0, 0, 0, 0.12);
-    background-color: rgba(255, 255, 255, 0.8);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
-  }
-
-  .light .bento-card::before {
-    background: radial-gradient(
-      800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-      hsla(190, 100%, 40%, 0.06),
-      transparent 40%
-    );
-  }
-
-  .light .option-chip {
-    border-color: rgba(0, 0, 0, 0.06);
-    background-color: rgba(255, 255, 255, 0.6);
-  }
-
-  .light .option-chip:hover {
-    border-color: rgba(0, 0, 0, 0.12);
-    background-color: rgba(255, 255, 255, 0.8);
-  }
-
-  .light .option-chip-selected {
-    border-color: hsl(var(--primary) / 0.5);
-    background-color: hsl(var(--primary) / 0.08);
-    box-shadow: 0 0 30px -5px hsla(190, 100%, 40%, 0.15);
+      radial-gradient(at 0% 0%, hsla(190, 100%, 50%, 0.05) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, hsla(280, 100%, 70%, 0.05) 0px, transparent 50%);
   }
 }
 
@@ -134,50 +92,101 @@
     mask-image: radial-gradient(ellipse 80% 50% at 50% 0%, black, transparent);
   }
 
+  /* Theme-aware Glass styles */
   .glass {
-    @apply border border-white/[0.08] bg-white/[0.02] shadow-[0_8px_32px_rgba(0,0,0,0.4)] backdrop-blur-xl;
+    background-color: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    box-shadow: var(--card-shadow);
+  }
+  
+  .dark .glass {
+    background-color: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(20px);
   }
 
   .glass-strong {
-    @apply border border-white/[0.12] bg-white/[0.04] shadow-[0_12px_48px_rgba(0,0,0,0.6)] backdrop-blur-2xl;
+    background-color: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    box-shadow: var(--card-shadow);
   }
 
+  .dark .glass-strong {
+    background-color: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(40px);
+  }
+
+  /* Theme-aware Bento cards */
   .bento-card {
-    @apply glass relative overflow-hidden rounded-3xl transition-all duration-300 hover:border-white/20 hover:bg-white/[0.04] hover:shadow-glow-sm;
+    background-color: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    box-shadow: var(--card-shadow);
+    @apply relative overflow-hidden transition-all duration-300;
   }
 
-  .bento-card::before {
-    content: "";
-    @apply pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500;
-    background: radial-gradient(
-      800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-      hsla(190, 100%, 50%, 0.08),
-      transparent 40%
-    );
+  .bento-card:hover {
+    box-shadow: var(--card-shadow-hover);
+    border-color: hsl(var(--primary) / 0.2);
   }
 
-  .bento-card:hover::before {
-    @apply opacity-100;
+  .dark .bento-card {
+    background-color: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .dark .bento-card:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+    background-color: rgba(255, 255, 255, 0.04);
   }
 
   .gradient-text {
-    @apply bg-gradient-to-br from-cyan-300 via-sky-400 to-violet-400 bg-clip-text text-transparent;
+    @apply font-bold bg-gradient-to-br from-blue-600 to-indigo-600 bg-clip-text text-transparent dark:from-cyan-300 dark:to-violet-400;
   }
 
   .shine-btn {
     @apply relative overflow-hidden transition-transform active:scale-95;
   }
 
+  /* Theme-aware Option chips */
   .option-chip {
-    @apply relative w-full rounded-2xl border border-white/[0.06] bg-white/[0.02] px-5 py-4 text-left text-sm font-medium backdrop-blur-md transition-all duration-300;
+    background-color: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: calc(var(--radius) - 2px);
+    @apply relative w-full px-5 py-4 text-left text-sm font-medium transition-all duration-200;
   }
 
   .option-chip:hover {
-    @apply border-white/20 bg-white/[0.06] -translate-y-0.5 shadow-lg;
+    background-color: hsl(var(--secondary) / 0.5);
+    border-color: hsl(var(--border));
+    @apply -translate-y-0.5 shadow-sm;
   }
 
   .option-chip-selected {
-    @apply border-primary/50 bg-primary/10 shadow-[0_0_30px_-5px_hsla(190,100%,50%,0.3)];
+    background-color: hsl(var(--primary) / 0.05);
+    border-color: hsl(var(--primary) / 0.5);
+    color: hsl(var(--primary));
+  }
+
+  .dark .option-chip {
+    background-color: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(10px);
+    color: inherit;
+  }
+
+  .dark .option-chip:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+    background-color: rgba(255, 255, 255, 0.06);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+  }
+
+  .dark .option-chip-selected {
+    background-color: hsl(var(--primary) / 0.1);
+    border-color: hsl(var(--primary) / 0.5);
+    color: hsl(var(--foreground));
+    box-shadow: 0 0 30px -5px hsla(190, 100%, 50%, 0.3);
   }
 }
 

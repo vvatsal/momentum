@@ -71,6 +71,16 @@ async function upsertUser(
   const existing = list?.users?.find((u) => u.email === email);
 
   if (existing) {
+    // Reset password to the configured seed password
+    const { error: updateError } = await admin.auth.admin.updateUserById(existing.id, {
+      password: password,
+    });
+    if (updateError) {
+      console.warn(`⚠️ Failed to reset password for ${email}: ${updateError.message}`);
+    } else {
+      console.log(`Reset password for: ${email}`);
+    }
+
     await admin.from("profiles").upsert({
       id: existing.id,
       email,

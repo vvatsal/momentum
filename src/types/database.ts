@@ -251,3 +251,15 @@ export type PublishedTestListItem = Pick<
   Test,
   "id" | "title" | "description" | "starts_at" | "ends_at" | "duration_minutes"
 >;
+
+export interface Note {
+  id: string;
+  title: string;
+  description: string | null;
+  file_path: string | null;
+  file_type: "pdf" | "markdown";
+  content: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}

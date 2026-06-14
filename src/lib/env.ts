@@ -44,3 +44,36 @@ export function getResendConfig(): ResendConfig | null {
 
   return { apiKey, fromEmail };
 }
+
+export type SmtpConfig = {
+  host: string;
+  port: number;
+  secure: boolean;
+  auth: {
+    user: string;
+    pass: string;
+  };
+  fromEmail: string;
+};
+
+export function getSmtpConfig(): SmtpConfig | null {
+  const host = process.env.SMTP_HOST?.trim();
+  const portStr = process.env.SMTP_PORT?.trim();
+  const user = process.env.SMTP_USER?.trim();
+  const pass = process.env.SMTP_PASS?.trim();
+  const fromEmail = process.env.SMTP_FROM_EMAIL?.trim() || user || "";
+
+  if (!host || !portStr || !user || !pass) return null;
+
+  const port = parseInt(portStr, 10);
+  const secure = process.env.SMTP_SECURE === "true" || port === 465;
+
+  return {
+    host,
+    port,
+    secure,
+    auth: { user, pass },
+    fromEmail,
+  };
+}
+

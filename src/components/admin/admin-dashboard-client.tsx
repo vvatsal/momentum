@@ -1,8 +1,6 @@
-"use client";
-
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
-import { Plus, FileText, Copy, Check, Users, UploadCloud, Settings, Trash2, KeyRound, ChevronDown, ChevronUp, Calendar, Clock, Award, Edit, Sun, Moon } from "lucide-react";
+import { Plus, FileText, Copy, Check, Users, UploadCloud, Settings, Trash2, KeyRound, ChevronDown, ChevronUp, Calendar, Clock, Award, Edit, Sun, Moon, BookOpen, Trash } from "lucide-react";
 import { fadeUp, listItem, staggerContainer } from "@/lib/motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,6 +12,7 @@ import { deleteTest } from "@/app/actions/test";
 import { CreateUserForm } from "./create-user-form";
 import { ChangePassword } from "../auth/change-password";
 import { changeUserPassword, deleteUser as deleteUserAction, updateUser as updateUserAction } from "@/app/actions/admin";
+import { uploadNoteAction, deleteNoteAction } from "@/app/actions/notes";
 import type { Profile, Attempt } from "@/types/database";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -35,6 +34,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Textarea } from "../ui/textarea";
 
 type TestItem = {
   id: string;
@@ -48,19 +48,21 @@ export function AdminDashboardClient({
   tests,
   profiles = [],
   attempts = [],
+  notes = [],
 }: {
   profile: Profile;
   studentCount: number;
   tests: TestItem[];
   profiles?: Profile[];
   attempts?: Attempt[];
+  notes?: any[];
 }) {
   const reduce = useReducedMotion();
   const { toast } = useToast();
   const router = useRouter();
 
   // Tab State and URL Synchronization
-  const [activeTab, setActiveTab] = useState<"tests" | "users" | "upload" | "settings">("tests");
+  const [activeTab, setActiveTab] = useState<"tests" | "users" | "notes" | "upload" | "settings">("tests");
   const [testToDelete, setTestToDelete] = useState<{ id: string; title: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -74,11 +76,24 @@ export function AdminDashboardClient({
   const [editFormData, setEditFormData] = useState({ firstName: "", lastName: "", username: "", email: "" });
   const [isEditingUser, setIsEditingUser] = useState(false);
 
+  // Notes state
+  const [noteToDelete, setNoteToDelete] = useState<{ id: string; title: string } | null>(null);
+  const [isDeletingNote, setIsDeletingNote] = useState(false);
+  const [isUploadNoteOpen, setIsUploadNoteOpen] = useState(false);
+  const [noteUploadData, setNoteUploadData] = useState({
+    title: "",
+    description: "",
+    fileType: "pdf" as "pdf" | "markdown",
+    content: "",
+  });
+  const [noteFile, setNoteFile] = useState<File | null>(null);
+  const [isSubmittingNote, setIsSubmittingNote] = useState(false);
+
   const [theme, setTheme] = useState<"light" | "dark">(() => {
     if (typeof window !== "undefined") {
-      return (localStorage.getItem("theme") as "light" | "dark") || "dark";
+      return (localStorage.getItem("theme") as "light" | "dark") || "light";
     }
-    return "dark";
+    return "light";
   });
 
   const toggleTheme = (newTheme: "light" | "dark") => {
@@ -110,13 +125,13 @@ export function AdminDashboardClient({
   useEffect(() => {
     if (typeof window !== "undefined") {
       const tab = new URLSearchParams(window.location.search).get("tab");
-      if (tab === "users" || tab === "upload" || tab === "settings" || tab === "tests") {
-        setActiveTab(tab);
+      if (tab === "users" || tab === "notes" || tab === "upload" || tab === "settings" || tab === "tests") {
+        setActiveTab(tab as any);
       }
     }
   }, []);
 
-  const handleTabChange = (tab: "tests" | "users" | "upload" | "settings") => {
+  const handleTabChange = (tab: "tests" | "users" | "notes" | "upload" | "settings") => {
     setActiveTab(tab);
     if (typeof window !== "undefined") {
       const url = new URL(window.location.href);
@@ -132,6 +147,7 @@ export function AdminDashboardClient({
   const tabs = [
     { id: "tests", label: "Assessments", icon: FileText },
     { id: "users", label: "Users", icon: Users },
+    { id: "notes", label: "Notes", icon: BookOpen },
     { id: "upload", label: "Bulk Upload", icon: UploadCloud },
     { id: "settings", label: "Settings", icon: Settings },
   ] as const;
@@ -599,6 +615,127 @@ export function AdminDashboardClient({
         </motion.div>
       )}
 
+      {/* Tab: Notes */}
+      {activeTab === "notes" && (
+        <div className="space-y-6">
+          <motion.div
+            variants={reduce ? undefined : staggerContainer}
+            initial="hidden"
+            animate="show"
+            className="grid grid-cols-1 gap-4 sm:grid-cols-2"
+          >
+            <motion.div variants={fadeUp} className="bento-card p-6 group">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                  Total Notes
+                </p>
+                <BookOpen className="h-4 w-4 text-primary" />
+              </div>
+              <p className="text-4xl font-black tabular-nums gradient-text">
+                {notes.length}
+              </p>
+              <p className="mt-2 text-xs text-muted-foreground font-medium">Uploaded study materials</p>
+            </motion.div>
+
+            <motion.div variants={fadeUp}>
+              <button
+                onClick={() => setIsUploadNoteOpen(true)}
+                className="w-full h-full text-left focus:outline-none"
+              >
+                <div className="bento-card h-full p-6 flex flex-col items-center justify-center gap-3 border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 transition-all group">
+                  <div className="h-12 w-12 rounded-2xl bg-primary/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Plus className="h-6 w-6 text-primary" />
+                  </div>
+                  <p className="font-bold text-primary">Upload Note</p>
+                </div>
+              </button>
+            </motion.div>
+          </motion.div>
+
+          <motion.div
+            variants={reduce ? undefined : fadeUp}
+            initial="hidden"
+            animate="show"
+            className="bento-card"
+          >
+            <div className="border-b border-border p-6 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold tracking-tight">All Notes</h2>
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mt-0.5">Manage study resources for students</p>
+              </div>
+              <Badge variant="secondary" className="font-mono">{notes.length}</Badge>
+            </div>
+
+            {notes.length === 0 ? (
+              <div className="p-12 text-center">
+                <p className="text-sm text-muted-foreground">No notes uploaded yet.</p>
+              </div>
+            ) : (
+              <motion.ul
+                variants={reduce ? undefined : staggerContainer}
+                initial="hidden"
+                animate="show"
+                className="divide-y divide-border"
+              >
+                {notes.map((note) => (
+                  <motion.li
+                    key={note.id}
+                    variants={listItem}
+                    className="group hover:bg-muted/30 transition-colors"
+                  >
+                    <div className="flex items-center justify-between gap-4 px-6 py-5">
+                      <div className="min-w-0 flex-1">
+                        <span className="block font-bold text-base truncate text-foreground">
+                          {note.title}
+                        </span>
+                        <p className="text-sm text-muted-foreground truncate mt-0.5">
+                          {note.description || "No description"}
+                        </p>
+                        <div className="flex items-center gap-3 mt-2">
+                          <Badge
+                            variant={note.file_type === "pdf" ? "default" : "secondary"}
+                            className="h-5 text-[10px] uppercase font-semibold"
+                          >
+                            {note.file_type}
+                          </Badge>
+                          {note.profiles?.full_name && (
+                            <span className="text-xs text-muted-foreground">
+                              By {note.profiles.full_name}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {note.file_type === "pdf" && note.file_path && (
+                          <Button variant="outline" size="sm" asChild className="h-8 text-xs font-bold">
+                            <a
+                              href={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/notes/${note.file_path}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              Download PDF
+                            </a>
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setNoteToDelete({ id: note.id, title: note.title })}
+                          className="h-8 w-8 text-destructive hover:text-red-400 hover:bg-red-500/10 rounded-xl"
+                        >
+                          <Trash className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </motion.li>
+                ))}
+              </motion.ul>
+            )}
+          </motion.div>
+        </div>
+      )}
+
       {/* Tab: Settings */}
       {activeTab === "settings" && (
         <motion.div
@@ -916,6 +1053,211 @@ export function AdminDashboardClient({
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Upload Note Dialog */}
+      <Dialog
+        open={isUploadNoteOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setIsUploadNoteOpen(false);
+            setNoteUploadData({ title: "", description: "", fileType: "pdf", content: "" });
+            setNoteFile(null);
+          }
+        }}
+      >
+        <DialogContent className="glass-strong max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="font-black text-lg">Publish New Note</DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              Provide study materials, notes, or references in PDF or Markdown format for students.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (!noteUploadData.title.trim()) {
+                toast({ title: "Validation Error", description: "Title is required", variant: "destructive" });
+                return;
+              }
+              if (noteUploadData.fileType === "pdf" && !noteFile) {
+                toast({ title: "Validation Error", description: "Please upload a PDF file", variant: "destructive" });
+                return;
+              }
+
+              setIsSubmittingNote(true);
+              try {
+                const formData = new FormData();
+                formData.append("title", noteUploadData.title);
+                formData.append("description", noteUploadData.description);
+                formData.append("fileType", noteUploadData.fileType);
+                if (noteUploadData.fileType === "pdf" && noteFile) {
+                  formData.append("file", noteFile);
+                } else {
+                  formData.append("content", noteUploadData.content);
+                }
+
+                const res = await uploadNoteAction(formData);
+                if (res.ok) {
+                  toast({ title: "Success", description: "Note published successfully" });
+                  setIsUploadNoteOpen(false);
+                  setNoteUploadData({ title: "", description: "", fileType: "pdf", content: "" });
+                  setNoteFile(null);
+                  router.refresh();
+                } else {
+                  toast({ title: "Error", description: res.error || "Failed to publish note", variant: "destructive" });
+                }
+              } catch (err) {
+                console.error("Note upload error:", err);
+                toast({ title: "Error", description: "Failed to publish note", variant: "destructive" });
+              } finally {
+                setIsSubmittingNote(false);
+              }
+            }}
+            className="space-y-4 mt-2"
+          >
+            <div className="space-y-2">
+              <Label htmlFor="note-title">Title</Label>
+              <Input
+                id="note-title"
+                type="text"
+                required
+                value={noteUploadData.title}
+                onChange={(e) => setNoteUploadData(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="e.g. Lecture 1: Calculus Basics"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="note-desc">Description</Label>
+              <Input
+                id="note-desc"
+                type="text"
+                value={noteUploadData.description}
+                onChange={(e) => setNoteUploadData(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Brief summary of the note contents"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>File Format</Label>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                  <input
+                    type="radio"
+                    name="noteFileType"
+                    checked={noteUploadData.fileType === "pdf"}
+                    onChange={() => setNoteUploadData(prev => ({ ...prev, fileType: "pdf" }))}
+                    className="h-4 w-4 text-primary"
+                  />
+                  PDF Document (.pdf)
+                </label>
+                <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                  <input
+                    type="radio"
+                    name="noteFileType"
+                    checked={noteUploadData.fileType === "markdown"}
+                    onChange={() => setNoteUploadData(prev => ({ ...prev, fileType: "markdown" }))}
+                    className="h-4 w-4 text-primary"
+                  />
+                  Markdown Text
+                </label>
+              </div>
+            </div>
+
+            {noteUploadData.fileType === "pdf" ? (
+              <div className="space-y-2">
+                <Label htmlFor="note-file">Upload PDF File</Label>
+                <Input
+                  id="note-file"
+                  type="file"
+                  accept=".pdf"
+                  required
+                  onChange={(e) => {
+                    const files = e.target.files;
+                    if (files && files[0]) setNoteFile(files[0]);
+                  }}
+                  className="bg-transparent border border-input cursor-pointer"
+                />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="note-content">Markdown Content</Label>
+                <Textarea
+                  id="note-content"
+                  rows={6}
+                  value={noteUploadData.content}
+                  onChange={(e) => setNoteUploadData(prev => ({ ...prev, content: e.target.value }))}
+                  placeholder="# Lecture Notes..."
+                  className="font-mono text-sm bg-transparent border border-input"
+                />
+              </div>
+            )}
+
+            <DialogFooter className="mt-4 gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isSubmittingNote}
+                onClick={() => {
+                  setIsUploadNoteOpen(false);
+                  setNoteUploadData({ title: "", description: "", fileType: "pdf", content: "" });
+                  setNoteFile(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSubmittingNote}
+                className="shine-btn font-bold"
+              >
+                {isSubmittingNote ? "Uploading..." : "Publish Note"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Note Confirmation Dialog */}
+      <AlertDialog open={!!noteToDelete} onOpenChange={(open) => !open && setNoteToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive font-black">Delete Note Permanently?</AlertDialogTitle>
+            <AlertDialogDescription className="text-sm text-muted-foreground leading-relaxed pt-2">
+              Are you sure you want to delete <strong className="text-foreground">&quot;{noteToDelete?.title}&quot;</strong>? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-4 gap-2">
+            <AlertDialogCancel disabled={isDeletingNote}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground font-bold"
+              disabled={isDeletingNote}
+              onClick={async (e) => {
+                e.preventDefault();
+                if (!noteToDelete) return;
+                setIsDeletingNote(true);
+                try {
+                  const res = await deleteNoteAction(noteToDelete.id);
+                  if (res.ok) {
+                    toast({ title: "Note deleted", description: `Successfully deleted "${noteToDelete.title}"` });
+                    setNoteToDelete(null);
+                    router.refresh();
+                  } else {
+                    toast({ title: "Error", description: res.error || "Failed to delete note", variant: "destructive" });
+                  }
+                } catch (err) {
+                  toast({ title: "Error", description: "Failed to delete note", variant: "destructive" });
+                } finally {
+                  setIsDeletingNote(false);
+                }
+              }}
+            >
+              {isDeletingNote ? "Deleting..." : "Delete Note"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

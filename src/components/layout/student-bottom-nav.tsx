@@ -16,7 +16,7 @@ export function StudentBottomNav() {
   const reduce = useReducedMotion();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.08] glass-strong pb-[env(safe-area-inset-bottom)]">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card pb-[env(safe-area-inset-bottom)]">
       <div className="mx-auto flex max-w-lg justify-around px-4 py-2">
         {links.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(href + "/");
@@ -26,13 +26,13 @@ export function StudentBottomNav() {
               href={href}
               className={cn(
                 "relative flex flex-col items-center gap-0.5 px-6 py-2 text-xs font-medium transition-colors",
-                active ? "text-cyan-300" : "text-muted-foreground"
+                active ? "text-primary" : "text-muted-foreground"
               )}
             >
               {active && !reduce && (
                 <motion.span
                   layoutId="nav-pill"
-                  className="absolute inset-0 rounded-2xl bg-cyan-500/15"
+                  className="absolute inset-0 rounded-2xl bg-primary/10"
                   transition={{ type: "spring", stiffness: 400, damping: 30 }}
                 />
               )}
