@@ -7,6 +7,7 @@ import Link from "next/link";
 import { ArrowLeft, BookOpen, Calendar, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { notFound } from "next/navigation";
+import { HtmlViewer } from "@/components/notes/html-viewer";
 
 export const dynamic = "force-dynamic";
 
@@ -150,15 +151,17 @@ export default async function NoteViewerPage({
               Scrollable Viewer
             </h3>
 
-            {isEmbeddable && publicUrl ? (
+            {isPdf && publicUrl ? (
               <div className="relative w-full h-[70vh] border border-border rounded-lg bg-slate-100 dark:bg-slate-900 overflow-hidden">
                 <iframe
-                  src={isPdf ? `${publicUrl}#toolbar=0&navpanes=0` : publicUrl}
+                  src={`${publicUrl}#toolbar=0&navpanes=0`}
                   className="w-full h-full border-0 bg-white"
                   title={note.title}
                   sandbox="allow-scripts allow-same-origin"
                 />
               </div>
+            ) : isHtml && publicUrl ? (
+              <HtmlViewer publicUrl={publicUrl} title={note.title} />
             ) : (
               <div className="max-h-[70vh] overflow-y-auto border border-border rounded-lg p-6 bg-background/50 scrollbar-thin">
                 <div 
